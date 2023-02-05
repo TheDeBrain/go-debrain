@@ -1,10 +1,10 @@
 <h1 align="center">Debrain</h1>
 <p>
   <a href="https://github.com/TheDeBrain/go-debrain/blob/master/LICENSE.md" target="_blank">
-    <img alt="License: GPLv3" src="https://img.shields.io/badge/License-a-yellow.svg" />
+    <img alt="License: GPLv3" src="https://img.shields.io/badge/License-GPLv3-yellow.svg" />
   </a>
   <a href="https://twitter.com/TheDeBrain" target="_blank">
-    <img alt="Twitter: TheDeBrain" src="https://img.shields.io/twitter/follow/a.svg?style=social" />
+    <img alt="Twitter: TheDeBrain" src="https://img.shields.io/twitter/follow/TheDeBrain.svg?style=social" />
   </a>
 </p>
 
