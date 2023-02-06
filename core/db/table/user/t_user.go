@@ -1,5 +1,5 @@
 package user
 
 type TUser struct {
-	Addrees string
+	Addrees string `json:"addrees"`
 }
