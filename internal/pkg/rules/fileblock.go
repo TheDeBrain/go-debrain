@@ -7,6 +7,8 @@ const (
 	FILE_TOTAL_PACKET_SIZE_DESCRIPTOR_BYTE_NUM = 8
 	// This is the size in bytes of the file index, size : 8 byte
 	FILE_INDEX_DATASIZE_DESCRIPTOR_BYTE_NUM = 8
+	// This is the size in bytes of the file total size, size : 8 byte
+	FILE_TOTAL_SIZE_DATASIZE_DESCRIPTOR_BYTE_NUM = 8
 	// This is the size in bytes of the file block position, size : 4 byte
 	FILE_BLOCK_POSITION_DATASIZE_DESCRIPTOR_BYTE_NUM = 4
 	// This is the size in bytes of the file block size descriptor, size : 4 byte
