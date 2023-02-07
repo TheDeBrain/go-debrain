@@ -10,6 +10,15 @@
 
 > This is the implementation of the go language version of the debrain network
 
+## Initialization
+> This will affect the integrity of the local node and must be implemented according to the process
+
+###### Create in the same level directory of executable program：
+
+1.  file_sys.json
+2.  route_table.json
+3.  sys.json
+
 ## Comunity
 
 * Twitter: [@TheDeBrain](https://twitter.com/TheDeBrain)
