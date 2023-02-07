@@ -1,21 +1,17 @@
 package services
 
 import (
-	"github.com/derain/core/db/table/sys"
+	"github.com/derain/internal/pkg/vars"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 func GetSysInfo(c *gin.Context) {
-	sys := new(sys.TSys)
-	sys = sys.Load()
-	c.JSON(http.StatusOK, sys)
+	c.JSON(http.StatusOK, vars.TSys)
 }
 
 func GetFileSysInfo(c *gin.Context) {
-	sys := new(sys.TFileSys)
-	sys = sys.Load()
-	c.JSON(http.StatusOK, sys)
+	c.JSON(http.StatusOK, vars.TFSys)
 }
 
 

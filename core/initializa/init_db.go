@@ -12,7 +12,7 @@ func InitDB() error {
 	fs := new(sys.TFileSys)
 	// route table
 	rt := new(node.TRouteTable)
-	err := ts.IniSysDB("sys.json")
+	err := ts.IniSysDB("sys.json","","","","")
 	err = fs.InitFileSysDB("file_sys.json")
 	err = rt.InitRouteTable("route_table.json")
 	if err != nil {
