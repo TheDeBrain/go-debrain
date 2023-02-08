@@ -3,8 +3,11 @@ package utils
 import (
 	"bytes"
 	"container/list"
+	"encoding/json"
 	"fmt"
+	"github.com/derain/core/protocols"
 	"github.com/derain/internal/pkg/rules"
+	"log"
 	"os"
 )
 
@@ -73,4 +76,30 @@ func WFToLocal(file []byte, filePath string) {
 		return
 	}
 	f.Close()
+}
+
+// read file block structure
+func RFBlock(filePath string) *protocols.FileBlock {
+	by, _ := RFInLocal(filePath)
+	fb := new(protocols.FileBlock)
+	json.Unmarshal(by, &fb)
+	return fb
+}
+
+// read file to localhost
+func RFInLocal(filePath string) ([]byte, error) {
+	f, err := os.Open(filePath) //create file
+	if err != nil {
+		log.Println("open file error", err)
+		return nil, err
+	}
+	fInfo, err := f.Stat()
+	if err != nil {
+		log.Println("get file state error", err)
+		return nil, err
+	}
+	fSize := fInfo.Size()
+	fBuf := make([]byte, fSize)
+	f.Read(fBuf)
+	return fBuf, nil
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/c-bata/go-prompt"
-	"github.com/derain/internal/pkg/vars"
+	"github.com/derain/core/db/table/sys"
 	"os"
 	"strings"
 )
@@ -38,13 +38,13 @@ func execCommand(t string) {
 	switch t {
 	case SYS_COMMAND:
 		{
-			s, _ := json.MarshalIndent(vars.TSys, "", " ")
+			s, _ := json.MarshalIndent(sys.LoadTSys(), "", " ")
 			fmt.Println(string(s))
 			break
 		}
 	case FSYS_COMMAND:
 		{
-			s, _ := json.MarshalIndent(vars.TFSys, "", " ")
+			s, _ := json.MarshalIndent(sys.LoadFileSys(), "", " ")
 			fmt.Println(string(s))
 			break
 		}

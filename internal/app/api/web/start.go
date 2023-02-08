@@ -6,12 +6,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func StartWebApiServer() {
+func StartWebApiService() {
 	r := gin.Default()
 	// init server
 	initServer(r)
 	// set port
-	r.Run(":" + new(sys.TSys).Load().WebApiPort)
+	r.Run(":" + sys.LoadTSys().WebApiPort)
 }
 
 func initServer(r *gin.Engine) {
@@ -22,5 +22,17 @@ func initServer(r *gin.Engine) {
 	// get file system info
 	r.GET("/sys/getFileSysInfo", func(c *gin.Context) {
 		services.GetFileSysInfo(c)
+	})
+	// get file
+	r.GET("/file/getFile", func(c *gin.Context) {
+		services.GetFile(c)
+	})
+	// upload file for one
+	r.POST("/file/upload/one", func(c *gin.Context) {
+		services.UploadFileForOne(c)
+	})
+	// upload file for more
+	r.POST("/file/upload/more", func(c *gin.Context) {
+		services.UploadFileForMore(c)
 	})
 }

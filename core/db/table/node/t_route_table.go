@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/derain/core/db/table/sys"
 	"log"
 	"os"
 )
@@ -15,8 +16,8 @@ type TRouteTable struct {
 func (rt *TRouteTable) InitRouteTable(fileName string) error {
 	dir, _ := os.Getwd()
 	routeTable := TRouteTable{}
-	// test
-	routeTable.NodeList = append(routeTable.NodeList, TNodeInfo{"127.0.0.1", "9090"})
+	// loacal address
+	routeTable.NodeList = append(routeTable.NodeList, TNodeInfo{"127.0.0.1", sys.LoadTSys().SyncPort})
 	routeTableDBPath := dir + "/" + fileName
 	f, err := os.OpenFile(routeTableDBPath, os.O_RDWR|os.O_CREATE, 0777)
 	defer f.Close()
@@ -28,7 +29,7 @@ func (rt *TRouteTable) InitRouteTable(fileName string) error {
 	return nil
 }
 
-func (rt *TRouteTable) Load() *TRouteTable {
+func LoadRouteTable() *TRouteTable {
 	dir, _ := os.Getwd()
 	tRouteTableDBPath := dir + "/route_table.json"
 	fp, err := os.OpenFile(tRouteTableDBPath, os.O_RDONLY, 0755)
