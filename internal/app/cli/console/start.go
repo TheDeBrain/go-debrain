@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"github.com/c-bata/go-prompt"
 	"github.com/derain/internal/pkg/vars"
+	"os"
 	"strings"
 )
 
 const (
 	SYS_COMMAND  = "sys"
 	FSYS_COMMAND = "fsys"
+	EXIT_COMMAND = "exit"
+	QUIT_COMMAND = "quit"
 )
 
 func completer(d prompt.Document) []prompt.Suggest {
@@ -43,6 +46,16 @@ func execCommand(t string) {
 		{
 			s, _ := json.MarshalIndent(vars.TFSys, "", " ")
 			fmt.Println(string(s))
+			break
+		}
+	case EXIT_COMMAND:
+		{
+			os.Exit(0)
+			break
+		}
+	case QUIT_COMMAND:
+		{
+			os.Exit(0)
 			break
 		}
 	default:
