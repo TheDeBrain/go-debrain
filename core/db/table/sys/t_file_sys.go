@@ -10,7 +10,6 @@ import (
 
 // file system table
 type TFileSys struct {
-	DBPath          string `json:"db_path"`
 	FileStoragePath string `json:"file_storage_path"`
 }
 
@@ -18,7 +17,6 @@ type TFileSys struct {
 func (tf *TFileSys) InitFileSysDB(fileName string) error {
 	dir, _ := os.Getwd()
 	tfs := TFileSys{
-		DBPath:          LoadTSys().DBRootPath + "db/",
 		FileStoragePath: LoadTSys().DBRootPath + "files/",
 	}
 	sysDBPath := dir + "/" + fileName
@@ -30,9 +28,6 @@ func (tf *TFileSys) InitFileSysDB(fileName string) error {
 	}
 	_, err = f.Write(data)
 	// create dir
-	if !utils.CheckPathExists(tfs.DBPath) {
-		os.MkdirAll(tfs.DBPath, 0777)
-	}
 	if !utils.CheckPathExists(tfs.FileStoragePath) {
 		os.MkdirAll(tfs.FileStoragePath, 0777)
 	}

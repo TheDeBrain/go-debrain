@@ -24,6 +24,7 @@ func (ts *TSys) IniSysDB(fileName string,
 	rpcPort string,
 	webApiPort string,
 	dbRootPath string) error {
+	dir, _ := os.Getwd()
 	if len(syncPort) == 0 {
 		syncPort = "9000"
 	}
@@ -34,10 +35,9 @@ func (ts *TSys) IniSysDB(fileName string,
 		webApiPort = "9002"
 	}
 	if len(dbRootPath) == 0 {
-		dbRootPath = "debrain-data/"
+		dbRootPath = dir + "/debrain-data/"
 	}
 	dbRootPath = filepath.FromSlash(dbRootPath)
-	dir, _ := os.Getwd()
 	sysDB := TSys{
 		SyncPort:          syncPort,
 		RpcPort:           rpcPort,
@@ -60,7 +60,7 @@ func (ts *TSys) IniSysDB(fileName string,
 func LoadTSys() *TSys {
 	dir, _ := os.Getwd()
 	sysDBPath := dir + "/sys.json"
-	fp, err := os.OpenFile(sysDBPath, os.O_RDONLY, 0755)
+	fp, err := os.OpenFile(sysDBPath, os.O_RDONLY, 0777)
 	defer fp.Close()
 	if err != nil {
 		log.Fatal(err)
