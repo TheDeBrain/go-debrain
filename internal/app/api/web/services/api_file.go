@@ -49,5 +49,22 @@ func UploadFileForOne(c *gin.Context) error {
 
 // upload file for more
 func UploadFileForMore(c *gin.Context) error {
+	form, err := c.MultipartForm()
+	if err != nil {
+	}
+	files := form.File["files"]
+	for _, file := range files {
+		fSize := file.Size
+		fBuf := make([]byte, fSize)
+		f, _ := file.Open()
+		f.Read(fBuf)
+		conn, _ := net.Dial("tcp", ":"+sys.LoadTSys().SyncPort)
+		if conn != nil {
+			err := sync.HandleSendUploadSyncReq(fBuf)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
