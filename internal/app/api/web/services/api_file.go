@@ -1,10 +1,10 @@
 package services
 
 import (
+	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/sync"
 	"github.com/derain/internal/pkg/rules"
 	"github.com/derain/internal/pkg/utils"
-	"github.com/derain/internal/pkg/vars"
 	"github.com/gin-gonic/gin"
 	"log"
 	"math/rand"
@@ -36,10 +36,10 @@ func UploadFileForOne(c *gin.Context) error {
 	}
 	c.String(http.StatusOK, headers.Filename)
 	// test connect
-	conn, _ := net.Dial("tcp", ":"+vars.TSys.SyncPort)
+	conn, _ := net.Dial("tcp", ":"+sys.LoadTSys().SyncPort)
 	if conn != nil {
 		for e := bl.Front(); e != nil; e = e.Next() {
-			err := sync.HandleSendUploadSyncReq(conn, fbuf)
+			err := sync.HandleSendUploadSyncReq(fbuf)
 			if err != nil {
 			}
 		}

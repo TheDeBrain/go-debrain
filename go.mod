@@ -25,6 +25,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/pkg/term v1.2.0-beta.2 // indirect
 	github.com/rivo/uniseg v0.4.3 // indirect
+	github.com/robfig/cron/v3 v3.0.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.9 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
