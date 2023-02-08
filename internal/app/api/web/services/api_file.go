@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/derain/core/sync"
+	"github.com/derain/internal/pkg/rules"
 	"github.com/derain/internal/pkg/utils"
 	"github.com/derain/internal/pkg/vars"
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,7 @@ func UploadFileForOne(c *gin.Context) error {
 		log.Printf("Error when try to get file: %v", err)
 	}
 	//headers.Size
-	if headers.Size > 1024*1024*2 {
+	if headers.Size > rules.MAX_FILE_SIZE {
 		log.Println("file size exceeds limit")
 		return err
 	}
