@@ -1,4 +1,4 @@
-<h1 align="center">Debrain</h1>
+<h1 align="center">🧠 Debrain</h1>
 <p>
   <a href="https://github.com/TheDeBrain/go-debrain/blob/master/LICENSE.md" target="_blank">
     <img alt="License: GPLv3" src="https://img.shields.io/badge/License-GPLv3-yellow.svg" />
