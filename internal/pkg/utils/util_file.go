@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"container/list"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/derain/core/protocols"
@@ -76,6 +77,15 @@ func WFToLocal(file []byte, filePath string) {
 		return
 	}
 	f.Close()
+}
+
+// splice file
+func SpliceFile(bufSize uint64, fb []byte) *bytes.Buffer {
+	sfb := bytes.NewBuffer(make([]byte, bufSize))
+	for _, data := range fb {
+		binary.Write(sfb, binary.BigEndian, data)
+	}
+	return sfb
 }
 
 // read file block structure
