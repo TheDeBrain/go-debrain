@@ -21,7 +21,7 @@
 
 ## Storage Architecture
 
-![image](https://github.com/TheDeBrain/architecture-model/blob/master/storage-architecture/Storage_EN.png)
+![image](https://github.com/TheDeBrain/architecture-model/blob/master/storage-architecture/storage_en.png)
 
 ## Comunity
 
