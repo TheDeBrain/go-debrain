@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/derain/core/db/table/node"
 	"github.com/derain/core/db/table/sys"
@@ -13,7 +12,6 @@ import (
 	"github.com/derain/internal/pkg/rules"
 	"github.com/derain/internal/pkg/utils"
 	"github.com/derain/test"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -35,43 +33,6 @@ func StartSyncService() error {
 			log.Fatal("sync connect error:", err)
 		}
 		go handleSyncService(conn)
-	}
-	return nil
-}
-
-// handle sync service
-func handleSyncService(conn net.Conn) error {
-	for {
-		protocol := new(protocols.CommProtocol)
-		// protocol type handle
-		protocolTypeBuf := make([]byte, rules.PROTOCOL_TYPE_BYTE_NUM)
-		_, err := conn.Read(protocolTypeBuf)
-		if err != nil || err == io.EOF {
-			return err
-		}
-		ptBuf := bytes.NewReader(protocolTypeBuf)
-		binary.Read(ptBuf, binary.BigEndian, &protocol.ProtocolType)
-		switch protocol.ProtocolType {
-		case uint8(rules.FILE_BLOCK_CLIENT_SYNC_PROTOCOL):
-			{
-				handleClientSyncReq(conn)
-				break
-			}
-		case uint8(rules.FILE_BLOCK_BETWEEN_SERVER_SYNC_PROTOCOL):
-			{
-				handleBetweenServerSyncReq(conn)
-				break
-			}
-		case uint8(rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL):
-			{
-				handleUploadSyncReq(conn)
-				break
-			}
-		default:
-			{
-				return errors.New("Illegal protocol")
-			}
-		}
 	}
 	return nil
 }
