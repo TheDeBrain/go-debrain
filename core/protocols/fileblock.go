@@ -39,6 +39,11 @@ type FileBlockFoot struct {
 	FileBlockEndFlag []byte // file block end flag
 }
 
+// Protocol Result
+type FileBlockSyncResult struct {
+	BadNodeList []any // bad node list
+}
+
 func FBNew(fileIndex string, fileName string, fileSize uint64,
 	fileTotalBlockNum uint64, fileBlockPosition uint32,
 	fileBlockSize uint32, fileOwnerSize uint32, fileBlockStorageNodeSize uint64,

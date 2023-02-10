@@ -12,6 +12,7 @@ import (
 	"github.com/derain/core/protocols"
 	"github.com/derain/internal/pkg/rules"
 	"github.com/derain/internal/pkg/utils"
+	"github.com/derain/test"
 	"io"
 	"log"
 	"net"
@@ -82,7 +83,7 @@ func handleClientSyncReq(conn net.Conn) error {
 	}
 	fileList := list.New()
 	// test
-	fileList.PushBack("/Users/SuperMax/Downloads/AA1/a")
+	fileList.PushBack(test.Path1)
 	for e := fileList.Front(); e != nil; e = e.Next() {
 		filePath := e.Value.(string)
 		f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0777)
@@ -96,7 +97,7 @@ func handleClientSyncReq(conn net.Conn) error {
 		fbuf := make([]byte, fInfo.Size())
 		f.Read(fbuf)
 		// write in sync net
-		WFByFileBlockToNet(fbuf, uint64(len(fbuf)), ptl)
+		WFByFileToNet(fbuf, uint64(len(fbuf)), ptl)
 	}
 	return nil
 }
@@ -128,7 +129,7 @@ func HandleSendUploadSyncReq(b []byte) error {
 	ptl := protocols.CommProtocol{
 		ProtocolType: rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL,
 	}
-	_, err := WFByFileBlockToNet(b, uint64(len(b)), ptl)
+	_, err := WFByFileToNet(b, uint64(len(b)), ptl)
 	if err != nil {
 		return err
 	}
@@ -221,7 +222,7 @@ func RFByFileBlockToLocalInNet(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	fileIndex:=string(fileIndexBuf[:])
+	fileIndex := string(fileIndexBuf[:])
 	fmt.Println(fileIndex)
 	// file block storage node size
 	fileStorageNodeBuf := make([]byte, fb.Head.FileBlockStorageNodeSize)
@@ -283,14 +284,14 @@ func RFByFileBlockToLocalInNet(conn net.Conn) error {
 }
 
 // write file to network by fileblock protocol
-func WFByFileBlockToNet(file []byte, fileSize uint64, ptl protocols.CommProtocol) (bool, error) {
+func WFByFileToNet(file []byte, fileSize uint64, ptl protocols.CommProtocol) (bool, error) {
 	fr := bytes.NewReader(file)
 	fbuf := make([]byte, len(file))
 	fr.Read(fbuf)
 	// file name
-	fileName := "文件名"
+	fileName := test.TFName
 	// file account
-	ownerAddr := "user1"
+	ownerAddr := test.TOwner
 	// route table
 	routeTable := node.LoadRouteTable().NodeList
 	// split file
@@ -299,56 +300,82 @@ func WFByFileBlockToNet(file []byte, fileSize uint64, ptl protocols.CommProtocol
 	FBPosition := uint32(0)
 	// file uuid
 	fUUID := utils.CrtUUID()
-	for _, nd := range routeTable {
-		ip := nd.Addr
-		port := nd.Port
-		conn, er := net.Dial("tcp", ip+":"+port)
-		// bad node
-		if er != nil {
-			continue
-		}
-		for e := fl.Front(); e != nil; e = e.Next() {
-			rtb := new(node.TFBRouteTable)
-			// file block position
-			FBPosition++
+	// create channel list
+	fBChannel := make(chan protocols.FileBlockSyncResult)
+	// ---------------- write processing start ----------------
+	for e := fl.Front(); e != nil; e = e.Next() {
+		// create file block storage route table
+		fBSNodeRoutable := new(node.TFBRouteTable)
+		// create file blcok storage node list
+		for _, nd := range routeTable {
 			ip := nd.Addr
 			port := nd.Port
+			// node health check
+			_, er := net.Dial("tcp", ip+":"+port)
 			// bad node
 			if er != nil {
 				continue
 			}
-			// 每一个文件块 会记录 他所存储的所有节点的信息
-			rtb.NodeList = append(rtb.NodeList, node.TFBNodeInfo{ip, port, fUUID, []int{1, 2, 3}})
-			// create file block
-			nLb, _ := json.Marshal(rtb.NodeList)
-			fs := protocols.FBNew(
-				fUUID, fileName, fileSize,
-				uint64(fl.Len()), FBPosition,
-				uint32(len(e.Value.([]byte))),
-				uint32(len([]byte(ownerAddr))),
-				uint64(len(nLb)),
-				ownerAddr,
-				rules.FILE_BLCOK_END_FLAG,
-				nLb,
-				e.Value.([]byte))
-			//file block buffer
-			buff := bytes.NewBuffer([]byte{})
-			// read in protocol type
-			protocols.CPBuf(buff, ptl)
-			// read in file block protocol
-			protocols.FBBuf(buff, fs)
-			_, err := conn.Write(buff.Bytes())
-			if err != nil {
-				return false, err
-			}
+			// file block storage healthy node
+			node := node.TFBNodeInfo{ip, port, fUUID, FBPosition}
+			fBSNodeRoutable.NodeList = append(fBSNodeRoutable.NodeList, node)
+		}
+		// write in file block
+		go wFByFileBlockToRouteTable(fUUID, fileName, fileSize, uint64(fl.Len()),
+			FBPosition, e.Value.([]byte), ownerAddr, fBSNodeRoutable, ptl, fBChannel)
+		// file block position increase
+		FBPosition += 1
+	}
+	// ---------------- write processing end ----------------
+	// file block sync result
+	for i := 0; i < fl.Len(); i++ {
+		<-fBChannel
+	}
+	// error hanlde
+	return true, nil
+}
+
+// write file block to route table by fileblock protocol
+func wFByFileBlockToRouteTable(fUUID string,
+	fileName string,
+	fileSize uint64,
+	fileTotalBlockNum uint64,
+	fileBlockPosition uint32,
+	fileBlock []byte,
+	ownerAddr string,
+	fBSNodeRoutable *node.TFBRouteTable,
+	ptl protocols.CommProtocol,
+	c chan protocols.FileBlockSyncResult) {
+	// file block result
+	fBr := new(protocols.FileBlockSyncResult)
+	// bad node
+	var badNodeList []any
+	// encode node list
+	nLb, _ := json.Marshal(fBSNodeRoutable.NodeList)
+	// create file block
+	fs := protocols.FBNew(fUUID, fileName, fileSize, fileTotalBlockNum, fileBlockPosition, uint32(len(fileBlock)),
+		uint32(len([]byte(ownerAddr))), uint64(len(nLb)), ownerAddr, rules.FILE_BLCOK_END_FLAG, nLb, fileBlock)
+	//file block buffer
+	buff := bytes.NewBuffer([]byte{})
+	// read in protocol type
+	protocols.CPBuf(buff, ptl)
+	// read in file block protocol
+	protocols.FBBuf(buff, fs)
+	// file block sync
+	for _, n := range fBSNodeRoutable.NodeList {
+		c, er := net.Dial("tcp", n.Addr+":"+n.Port)
+		if er != nil {
+			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
+			// bad node
+			continue
+		}
+		_, werr := c.Write(buff.Bytes())
+		if werr != nil {
+			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
+			// write in error
+			continue
 		}
 	}
-
-	//for e := fl.Front(); e != nil; e = e.Next() {
-	//
-	//	for _, nd := range routeTable {
-	//
-	//	}
-	//}
-	return true, nil
+	fBr.BadNodeList = badNodeList
+	c <- *fBr
 }
