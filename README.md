@@ -19,6 +19,10 @@
 2.  route_table.json
 3.  sys.json
 
+## Storage Architecture
+
+![image](https://github.com/TheDeBrain/architecture-model/blob/master/storage-architecture/Storage_EN.png)
+
 ## Comunity
 
 * Twitter: [@TheDeBrain](https://twitter.com/TheDeBrain)
