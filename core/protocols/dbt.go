@@ -32,7 +32,8 @@ func DBTNew(fileIndex string, fileName string, fileSize uint64,
 	ownerAddr string,
 	fileBlockEndFlag string,
 	nLb []byte,
-	fileBlockData []byte) DBTable {
+	fileBlockData []byte) {
+
 }
 
 func DBTBuf(buff *bytes.Buffer, dbt DBTable) {}

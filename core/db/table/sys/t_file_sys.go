@@ -10,6 +10,7 @@ import (
 
 // file system table
 type TFileSys struct {
+	SysLogPath      string `json:"sys_log_path"`
 	FileStoragePath string `json:"file_storage_path"`
 }
 

@@ -1,6 +1,8 @@
 package services
 
 import (
+	"errors"
+	"fmt"
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/sync"
 	"github.com/derain/internal/pkg/rules"
@@ -10,8 +12,40 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"path/filepath"
 	"time"
 )
+
+// get file
+func GetFile(c *gin.Context) error {
+	// user address
+	userAddr := c.Query("userAddr")
+	if len(userAddr) == 0 {
+		return errors.New("user address can not null")
+	}
+	// file name
+	fileName := c.Query("fileName")
+	if len(fileName) == 0 {
+		return errors.New("user address can not null")
+	}
+	//file system
+	fSys := sys.LoadFileSys()
+	// storage path
+	storagePath := fSys.FileStoragePath
+	// file path
+	filePath := storagePath
+	filePath = filePath + userAddr
+	filePath = filePath + "/" + fileName
+	m, err := filepath.Glob(filePath + "[1-3]")
+	if err==nil{
+		return nil
+	}
+	for _, val := range m {
+		fmt.Println(storagePath)
+		fmt.Println(val)
+	}
+	return nil
+}
 
 // upload file for one
 func UploadFileForOne(c *gin.Context) error {

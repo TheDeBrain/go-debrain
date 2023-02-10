@@ -25,6 +25,7 @@ func initServer(r *gin.Engine) {
 	})
 	// get file
 	r.GET("/file/getFile", func(c *gin.Context) {
+		services.GetFile(c)
 	})
 	// upload file for one
 	r.POST("/file/upload/one", func(c *gin.Context) {

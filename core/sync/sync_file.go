@@ -329,7 +329,8 @@ func WFByFileToNet(file []byte, fileSize uint64, ptl protocols.CommProtocol) (bo
 	// ---------------- write processing end ----------------
 	// file block sync result
 	for i := 0; i < fl.Len(); i++ {
-		<-fBChannel
+		res := <-fBChannel
+		log.Println("file block sync result:", res)
 	}
 	// error hanlde
 	return true, nil
