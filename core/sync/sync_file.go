@@ -18,23 +18,21 @@ import (
 	"strconv"
 )
 
-// start sync service
-func StartSyncService() error {
-	sys := sys.LoadTSys()
-	ln, err := net.Listen("tcp", ":"+sys.SyncPort)
-	defer ln.Close()
+// handle send upload sync request
+func HandleSendUploadSyncReq(b []byte) error {
+	ptl := protocols.CommProtocol{
+		ProtocolType: rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL,
+	}
+	_, err := wFByFileToNet(b, uint64(len(b)), ptl)
 	if err != nil {
 		return err
 	}
-	log.Println("Start the rpc server and listen to the port:", sys.SyncPort)
-	for {
-		conn, _ := ln.Accept()
-		if err != nil {
-			log.Fatal("sync connect error:", err)
-		}
-		go handleSyncService(conn)
-	}
 	return nil
+}
+
+// Handle fetch file requests
+func HandleGetFileReq() {
+
 }
 
 // handle client sync request
@@ -58,7 +56,7 @@ func handleClientSyncReq(conn net.Conn) error {
 		fbuf := make([]byte, fInfo.Size())
 		f.Read(fbuf)
 		// write in sync net
-		WFByFileToNet(fbuf, uint64(len(fbuf)), ptl)
+		wFByFileToNet(fbuf, uint64(len(fbuf)), ptl)
 	}
 	return nil
 }
@@ -66,7 +64,7 @@ func handleClientSyncReq(conn net.Conn) error {
 // handle between server sync request
 func handleBetweenServerSyncReq(conn net.Conn) error {
 	// read in sync net
-	err := RFByFileBlockToLocalInNet(conn)
+	err := rFByFileBlockToLocalInNet(conn)
 	if err != nil {
 		return err
 	}
@@ -77,7 +75,7 @@ func handleBetweenServerSyncReq(conn net.Conn) error {
 // handle upload sync request
 func handleUploadSyncReq(conn net.Conn) error {
 	// read in sync net
-	err := RFByFileBlockToLocalInNet(conn)
+	err := rFByFileBlockToLocalInNet(conn)
 	if err != nil {
 		return err
 	}
@@ -85,21 +83,9 @@ func handleUploadSyncReq(conn net.Conn) error {
 	return nil
 }
 
-// handle send upload sync request
-func HandleSendUploadSyncReq(b []byte) error {
-	ptl := protocols.CommProtocol{
-		ProtocolType: rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL,
-	}
-	_, err := WFByFileToNet(b, uint64(len(b)), ptl)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // read file by FileBlock protocol in net
 // Each time a FileBlock is successfully read, a pointer to the FileBlock will be returned
-func RFByFileBlockToLocalInNet(conn net.Conn) error {
+func rFByFileBlockToLocalInNet(conn net.Conn) error {
 	// file block struct
 	fb := new(protocols.FileBlock)
 	// ---------------------------- protocol head ----------------------------
@@ -245,7 +231,7 @@ func RFByFileBlockToLocalInNet(conn net.Conn) error {
 }
 
 // write file to network by fileblock protocol
-func WFByFileToNet(file []byte, fileSize uint64, ptl protocols.CommProtocol) (bool, error) {
+func wFByFileToNet(file []byte, fileSize uint64, ptl protocols.CommProtocol) (bool, error) {
 	fr := bytes.NewReader(file)
 	fbuf := make([]byte, len(file))
 	fr.Read(fbuf)
