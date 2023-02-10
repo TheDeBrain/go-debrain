@@ -59,6 +59,11 @@ func HandleSyncService(conn net.Conn) error {
 				handleUploadSyncReq(conn)
 				break
 			}
+		case uint8(rules.GET_FILE_PROTOCOL):
+			{
+				getFileResponse(conn)
+			    break
+			}
 		default:
 			{
 				return errors.New("Illegal protocol")
@@ -67,4 +72,3 @@ func HandleSyncService(conn net.Conn) error {
 	}
 	return nil
 }
-
