@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"container/list"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
-	"github.com/derain/core/protocols"
-	"github.com/derain/internal/pkg/rules"
-	"log"
+	"github.com/derain/core/rules"
 	"os"
 )
 
@@ -64,6 +61,11 @@ func SplitFile(fb []byte) list.List {
 	return *fileBlockList
 }
 
+// read file to localhost
+func RFToLocal(filePath string) ([]byte, error) {
+	return os.ReadFile(filePath)
+}
+
 // write file to localhost
 func WFToLocal(file []byte, filePath string) {
 	f, err3 := os.Create(filePath) //create file
@@ -86,30 +88,4 @@ func SpliceFile(bufSize uint64, fb []byte) *bytes.Buffer {
 		binary.Write(sfb, binary.BigEndian, data)
 	}
 	return sfb
-}
-
-// read file block structure
-func RFBlock(filePath string) *protocols.FileBlock {
-	by, _ := RFInLocal(filePath)
-	fb := new(protocols.FileBlock)
-	json.Unmarshal(by, &fb)
-	return fb
-}
-
-// read file to localhost
-func RFInLocal(filePath string) ([]byte, error) {
-	f, err := os.Open(filePath) //create file
-	if err != nil {
-		log.Println("open file error", err)
-		return nil, err
-	}
-	fInfo, err := f.Stat()
-	if err != nil {
-		log.Println("get file state error", err)
-		return nil, err
-	}
-	fSize := fInfo.Size()
-	fBuf := make([]byte, fSize)
-	f.Read(fBuf)
-	return fBuf, nil
 }

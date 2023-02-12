@@ -6,7 +6,7 @@ import (
 	"errors"
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/protocols"
-	"github.com/derain/internal/pkg/rules"
+	"github.com/derain/core/rules"
 	"io"
 	"log"
 	"net"
@@ -61,7 +61,8 @@ func HandleSyncService(conn net.Conn) error {
 			}
 		case uint8(rules.GET_FILE_PROTOCOL):
 			{
-				getFileResponse(conn)
+			    // Process file acquisition requests and output file blocks to the client
+				handleGetFileResponse(conn)
 			    break
 			}
 		default:

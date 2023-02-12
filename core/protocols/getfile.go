@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/derain/internal/pkg/rules"
+	"github.com/derain/core/db/table/node"
+	"github.com/derain/core/rules"
 	"net"
 )
 
@@ -29,8 +30,15 @@ func GFNew(ows uint32, fns uint64, fn []byte, fo []byte) GetFile {
 	return gf
 }
 
-func GFBuf() {}
-
+func GFBuf(buff *bytes.Buffer, gf GetFile) {
+	// read in file index
+	binary.Write(buff, binary.BigEndian, gf.FileOwnerSize)
+	binary.Write(buff, binary.BigEndian, gf.FileNameSize)
+	binary.Write(buff, binary.BigEndian, gf.FileEndFlagSize)
+	binary.Write(buff, binary.BigEndian, gf.FileName)
+	binary.Write(buff, binary.BigEndian, gf.FileOwner)
+	binary.Write(buff, binary.BigEndian, rules.FILE_BLCOK_END_FLAG)
+}
 func GFNetUnPack(conn net.Conn) (GetFile, error) {
 	gf := new(GetFile)
 	// ---------------------------- protocol head ----------------------------
@@ -84,4 +92,36 @@ func GFNetUnPack(conn net.Conn) (GetFile, error) {
 		return *gf, nil
 	}
 	return *gf, errors.New("illegal agreement")
+}
+
+// write file block to route table by fileblock protocol
+func WFByGetFileToRouteTable(
+	getFile GetFile,
+	fBSNodeRoutable *node.TFBRouteTable,
+	c chan FileBlockSyncResult) {
+	// file block result
+	fBr := new(FileBlockSyncResult)
+	// bad node
+	var badNodeList []any
+	//file block buffer
+	buff := bytes.NewBuffer([]byte{})
+	// read in file block protocol
+	GFBuf(buff, getFile)
+	// file block sync
+	for _, n := range fBSNodeRoutable.NodeList {
+		c, er := net.Dial("tcp", n.Addr+":"+n.Port)
+		if er != nil {
+			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
+			// bad node
+			continue
+		}
+		_, werr := c.Write(buff.Bytes())
+		if werr != nil {
+			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
+			// write in error
+			continue
+		}
+	}
+	fBr.BadNodeList = badNodeList
+	c <- *fBr
 }

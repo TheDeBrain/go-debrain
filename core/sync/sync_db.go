@@ -2,7 +2,7 @@ package sync
 
 import (
 	"github.com/derain/core/protocols"
-	"github.com/derain/internal/pkg/rules"
+	"github.com/derain/core/rules"
 )
 
 

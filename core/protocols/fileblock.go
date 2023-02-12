@@ -7,8 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/derain/core/db/table/node"
-	"github.com/derain/internal/pkg/rules"
+	"github.com/derain/core/db/table/sys"
+	"github.com/derain/core/rules"
+	"github.com/derain/internal/pkg/utils"
+	"github.com/derain/test"
+	"log"
 	"net"
+	"os"
+	"strconv"
 )
 
 // Protocol for file block
@@ -50,13 +56,14 @@ type FileBlockSyncResult struct {
 	BadNodeList []any // bad node list
 }
 
+// create file block pointer
 func FBNew(fileIndex string, fileName string, fileSize uint64,
 	fileTotalBlockNum uint64, fileBlockPosition uint32,
 	fileBlockSize uint32, fileOwnerSize uint32, fileBlockStorageNodeSize uint64,
 	ownerAddr string,
 	fileBlockEndFlag string,
 	nLb []byte,
-	fileBlockData []byte) FileBlock {
+	fileBlockData []byte) *FileBlock {
 	fs := FileBlock{
 		Head: FileBlockHead{
 			FileIndexSize:            uint64(len([]byte(fileIndex))), // uuid
@@ -80,10 +87,11 @@ func FBNew(fileIndex string, fileName string, fileSize uint64,
 			EndFlag: []byte(fileBlockEndFlag),
 		},
 	}
-	return fs
+	return &fs
 }
 
-func FBBuf(buff *bytes.Buffer, fs FileBlock) {
+// create file block buffer
+func FBBuf(buff *bytes.Buffer, fs *FileBlock) {
 	// read in file index
 	binary.Write(buff, binary.BigEndian, fs.Head.FileIndexSize)
 	// read in file name
@@ -117,7 +125,7 @@ func FBBuf(buff *bytes.Buffer, fs FileBlock) {
 }
 
 // network unpack by fileblock
-func FBNetUnPack(conn net.Conn) (FileBlock, error) {
+func FBNetUnPack(conn net.Conn) (*FileBlock, error) {
 	fb := new(FileBlock)
 	// ---------------------------- protocol head ----------------------------
 	// file index size
@@ -126,7 +134,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	fisBuf := bytes.NewReader(fileIndexSizeBuf)
 	binary.Read(fisBuf, binary.BigEndian, &fb.Head.FileIndexSize)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file name size
 	fileNameSizeBuf := make([]byte, rules.FILE_NAME_DATASIZE_DESCRIPTOR_BYTE_NUM)
@@ -134,7 +142,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	fnsBuf := bytes.NewReader(fileNameSizeBuf)
 	binary.Read(fnsBuf, binary.BigEndian, &fb.Head.FileNameSize)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file total size
 	fileTotalBuf := make([]byte, rules.FILE_TOTAL_SIZE_DATASIZE_DESCRIPTOR_BYTE_NUM)
@@ -142,7 +150,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	ftBuf := bytes.NewReader(fileTotalBuf)
 	binary.Read(ftBuf, binary.BigEndian, &fb.Head.FileTotalSize)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file total block num
 	fileTotalBlockNumBuf := make([]byte, rules.FILE_TOTAL_BLOCK_NUM_DATASIZE_DESCRIPTOR_BYTE_NUM)
@@ -150,7 +158,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	ftbBuf := bytes.NewReader(fileTotalBlockNumBuf)
 	binary.Read(ftbBuf, binary.BigEndian, &fb.Head.FileTotalBlockNum)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file block position
 	fileBlockPositionBuf := make([]byte, rules.FILE_BLOCK_POSITION_DATASIZE_DESCRIPTOR_BYTE_NUM)
@@ -158,7 +166,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	fbpBuf := bytes.NewReader(fileBlockPositionBuf)
 	binary.Read(fbpBuf, binary.BigEndian, &fb.Head.FileBlockPosition)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file block size
 	fileBlockSizeBuf := make([]byte, rules.FILE_BLOCK_DATASIZE_DESCRIPTOR_BYTE_NUM)
@@ -166,7 +174,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	bsbuf := bytes.NewReader(fileBlockSizeBuf)
 	binary.Read(bsbuf, binary.BigEndian, &fb.Head.FileBlockSize)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file owner size
 	fileOwnerSizeBuf := make([]byte, rules.FILE_BLOCK_OWNER_DATASIZE_DESCRIPTOR_BYTE_NUM)
@@ -174,7 +182,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	fosbuf := bytes.NewReader(fileOwnerSizeBuf)
 	binary.Read(fosbuf, binary.BigEndian, &fb.Head.FileOwnerSize)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file storage node size
 	fileBlockStorageNodeSizeBuf := make([]byte, rules.FILE_BLOCK_STROAGE_NODE_DATASIZE_DESCRIPTOR_BYTE_NUM)
@@ -182,7 +190,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	fsnbuf := bytes.NewReader(fileBlockStorageNodeSizeBuf)
 	binary.Read(fsnbuf, binary.BigEndian, &fb.Head.FileBlockStorageNodeSize)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file end flag size
 	fileBlockEndFlagSizeBuf := make([]byte, rules.FILE_BLOCK_END_FLAG_DATASIZE_DESCRIPTOR_BYTE_NUM)
@@ -190,7 +198,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	febuf := bytes.NewReader(fileBlockEndFlagSizeBuf)
 	binary.Read(febuf, binary.BigEndian, &fb.Head.FileBlockEndFlagSize)
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// ---------------------------- protocol body ----------------------------
 	// file index size
@@ -198,7 +206,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	_, err = conn.Read(fileIndexBuf)
 	fb.Body.FileIndex = fileIndexBuf
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	fileIndex := string(fileIndexBuf[:])
 	fmt.Println(fileIndex)
@@ -207,7 +215,7 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	_, err = conn.Read(fileStorageNodeBuf)
 	fb.Body.FileBlockStorageNode = fileStorageNodeBuf
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	var s []node.TFBNodeInfo
 	json.Unmarshal(fb.Body.FileBlockStorageNode[:], &s)
@@ -216,21 +224,21 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	_, err = conn.Read(fileNameBuf)
 	fb.Body.FileName = fileNameBuf
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file owner data
 	fileOwnerBuf := make([]byte, fb.Head.FileOwnerSize)
 	_, err = conn.Read(fileOwnerBuf)
 	fb.Body.FileOwner = fileOwnerBuf
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// file block data
 	fileDataBuf := make([]byte, fb.Head.FileBlockSize)
 	_, err = conn.Read(fileDataBuf)
 	fb.Body.FileBlockData = fileDataBuf
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	// ---------------------------- protocol foot ----------------------------
 	// file block end flag data
@@ -238,11 +246,152 @@ func FBNetUnPack(conn net.Conn) (FileBlock, error) {
 	n, err := conn.Read(fileBlockEndBuf)
 	fb.Foot.EndFlag = fileBlockEndBuf[:n]
 	if err != nil {
-		return *fb, err
+		return fb, err
 	}
 	endFlag := string(fb.Foot.EndFlag)
 	if endFlag == rules.FILE_BLCOK_END_FLAG {
-		return *fb, nil
+		return fb, nil
 	}
-	return *fb, errors.New("illegal agreement")
+	return fb, errors.New("illegal agreement")
+}
+
+// read file block in local
+func RFBInLocal(filePath string) (*FileBlock, error) {
+	f, err := utils.RFToLocal(filePath)
+	if err != nil {
+		return nil, err
+	}
+	fb := new(FileBlock)
+	err = json.Unmarshal(f, fb)
+	if err != nil {
+		return nil, err
+	}
+	return fb, nil
+}
+
+// read file by FileBlock protocol in net
+// Each time a FileBlock is successfully read, a pointer to the FileBlock will be returned
+func RFBToLocalInNet(conn net.Conn) error {
+	// file block struct
+	fb := new(FileBlock)
+	fb, err := FBNetUnPack(conn)
+	if err != nil {
+		return err
+	}
+	fileOwner := string(fb.Body.FileOwner)
+	fileName := string(fb.Body.FileName)
+	if string(fb.Foot.EndFlag) == rules.FILE_BLCOK_END_FLAG {
+		// file write
+		fsys := sys.LoadFileSys()
+		dir := fsys.FileStoragePath
+		dir = dir + fileOwner + "/"
+		if !utils.CheckPathExists(dir) {
+			os.Mkdir(dir, 0777)
+		}
+		fileName = fileName + "_" + strconv.FormatInt(int64(fb.Head.FileBlockPosition), 10)
+		//file storage
+		fn := dir + fileName
+		bb, _ := json.Marshal(fb)
+		utils.WFToLocal(bb, fn)
+		return nil
+	}
+	return nil
+}
+
+// write file to network by fileblock protocol
+func WFBToNet(file []byte, fileSize uint64, ptl *CommProtocol) (bool, error) {
+	fr := bytes.NewReader(file)
+	fbuf := make([]byte, len(file))
+	fr.Read(fbuf)
+	// file name
+	fileName := test.TFName
+	// file account
+	ownerAddr := test.TOwner
+	// route table
+	routeTable := node.LoadRouteTable().NodeList
+	// split file
+	fl := utils.SplitFile(fbuf)
+	// file position,increment
+	FBPosition := uint32(0)
+	// file uuid
+	fUUID := utils.CrtUUID()
+	// create channel list
+	fBChannel := make(chan FileBlockSyncResult)
+	// ---------------- write processing start ----------------
+	for e := fl.Front(); e != nil; e = e.Next() {
+		// create file block storage route table
+		fBSNodeRoutable := new(node.TFBRouteTable)
+		// create file blcok storage node list
+		for _, nd := range routeTable {
+			ip := nd.Addr
+			port := nd.Port
+			// node health check
+			_, er := net.Dial("tcp", ip+":"+port)
+			// bad node
+			if er != nil {
+				continue
+			}
+			// file block storage healthy node
+			node := node.TFBNodeInfo{ip, port, fUUID, FBPosition}
+			fBSNodeRoutable.NodeList = append(fBSNodeRoutable.NodeList, node)
+		}
+		// write in file block
+		go WFBToRt(fUUID, fileName, fileSize, uint64(fl.Len()),
+			FBPosition, e.Value.([]byte), ownerAddr, fBSNodeRoutable, ptl, fBChannel)
+		// file block position increase
+		FBPosition += 1
+	}
+	// ---------------- write processing end ----------------
+	// file block sync result
+	for i := 0; i < fl.Len(); i++ {
+		res := <-fBChannel
+		log.Println("file block sync result:", res)
+	}
+	// error hanlde
+	return true, nil
+}
+
+// write file block to route table by fileblock protocol
+func WFBToRt(fUUID string,
+	fileName string,
+	fileSize uint64,
+	fileTotalBlockNum uint64,
+	fileBlockPosition uint32,
+	fileBlock []byte,
+	ownerAddr string,
+	fBSNodeRoutable *node.TFBRouteTable,
+	ptl *CommProtocol,
+	c chan FileBlockSyncResult) {
+	// file block result
+	fBr := new(FileBlockSyncResult)
+	// bad node
+	var badNodeList []any
+	// encode node list
+	nLb, _ := json.Marshal(fBSNodeRoutable.NodeList)
+	// create file block
+	fs := FBNew(fUUID, fileName, fileSize, fileTotalBlockNum, fileBlockPosition, uint32(len(fileBlock)),
+		uint32(len([]byte(ownerAddr))), uint64(len(nLb)), ownerAddr, rules.FILE_BLCOK_END_FLAG, nLb, fileBlock)
+	//file block buffer
+	buff := bytes.NewBuffer([]byte{})
+	// read in protocol type
+	CPBuf(buff, ptl)
+	// read in file block protocol
+	FBBuf(buff, fs)
+	// file block sync
+	for _, n := range fBSNodeRoutable.NodeList {
+		c, er := net.Dial("tcp", n.Addr+":"+n.Port)
+		if er != nil {
+			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
+			// bad node
+			continue
+		}
+		_, werr := c.Write(buff.Bytes())
+		if werr != nil {
+			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
+			// write in error
+			continue
+		}
+	}
+	fBr.BadNodeList = badNodeList
+	c <- *fBr
 }
