@@ -10,6 +10,11 @@ type CommProtocol struct {
 	ProtocolType uint8 // Declare the protocol type , 1 byte
 }
 
-func CPBuf(buff *bytes.Buffer, cp *CommProtocol) {
-	binary.Write(buff, binary.BigEndian, cp.ProtocolType)
+func CPBuf(cp *CommProtocol) (*bytes.Buffer, error) {
+	buff := bytes.NewBuffer([]byte{})
+	err := binary.Write(buff, binary.BigEndian, cp.ProtocolType)
+	if err != nil {
+		return nil, err
+	}
+	return buff, nil
 }

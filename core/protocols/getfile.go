@@ -7,6 +7,7 @@ import (
 	"github.com/derain/core/db/table/node"
 	"github.com/derain/core/rules"
 	"net"
+	"unsafe"
 )
 
 type GetFile struct {
@@ -43,7 +44,7 @@ func GFNetUnPack(conn net.Conn) (GetFile, error) {
 	gf := new(GetFile)
 	// ---------------------------- protocol head ----------------------------
 	// file owner size
-	fileOwnerSizeBuf := make([]byte, rules.FILE_BLOCK_OWNER_DATASIZE_DESCRIPTOR_BYTE_NUM)
+	fileOwnerSizeBuf := make([]byte, int(unsafe.Sizeof(gf.FileOwnerSize)))
 	_, err := conn.Read(fileOwnerSizeBuf)
 	fos := bytes.NewReader(fileOwnerSizeBuf)
 	binary.Read(fos, binary.BigEndian, &gf.FileOwnerSize)
@@ -51,7 +52,7 @@ func GFNetUnPack(conn net.Conn) (GetFile, error) {
 		return *gf, err
 	}
 	// file name size
-	fileNameSizeBuf := make([]byte, rules.FILE_NAME_DATASIZE_DESCRIPTOR_BYTE_NUM)
+	fileNameSizeBuf := make([]byte, int(unsafe.Sizeof(gf.FileNameSize)))
 	_, err = conn.Read(fileNameSizeBuf)
 	fnsBuf := bytes.NewReader(fileNameSizeBuf)
 	binary.Read(fnsBuf, binary.BigEndian, &gf.FileNameSize)
@@ -59,7 +60,7 @@ func GFNetUnPack(conn net.Conn) (GetFile, error) {
 		return *gf, err
 	}
 	//  end size
-	endBuf := make([]byte, rules.FILE_BLOCK_END_FLAG_DATASIZE_DESCRIPTOR_BYTE_NUM)
+	endBuf := make([]byte, int(unsafe.Sizeof(gf.FileEndFlagSize)))
 	_, err = conn.Read(endBuf)
 	ebBuf := bytes.NewReader(endBuf)
 	binary.Read(ebBuf, binary.BigEndian, &gf.FileEndFlagSize)
