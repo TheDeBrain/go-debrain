@@ -341,7 +341,7 @@ func WFBToRt(fUUID string,
 	return nil
 }
 
-// protocol analysis
+// file block protocol analysis in reader steam
 func FBProtocolAnalysis(r io.Reader) (*FileBlock, error) {
 	fb := new(FileBlock)
 	// ---------------------------- protocol head ----------------------------

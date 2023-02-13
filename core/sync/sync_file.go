@@ -39,7 +39,7 @@ func HandleGetFileBlockReq(fileOwner string, fileName string) error {
 // Output file chunks to client
 func handleGetFileResponse(conn net.Conn) error {
 	// get file protocol
-	gf, err := protocols.GFNetUnPack(conn)
+	gf, err := protocols.FGNetUnPack(conn)
 	if err != nil {
 		return err
 	}
