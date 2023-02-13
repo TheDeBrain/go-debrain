@@ -1,8 +1,10 @@
 package services
 
 import (
+	"bytes"
 	"errors"
 	"github.com/derain/core/db/table/sys"
+	"github.com/derain/core/protocols"
 	"github.com/derain/core/rules"
 	"github.com/derain/core/sync"
 	"github.com/gin-gonic/gin"
@@ -18,14 +20,27 @@ func GetFile(c *gin.Context) error {
 	// user address
 	fileOwner := c.Query("fileOwner")
 	if len(fileOwner) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "user owner can not null"})
 		return errors.New("user owner can not null")
 	}
 	// file name
 	fileName := c.Query("fileName")
 	if len(fileName) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "user address can not null"})
 		return errors.New("user address can not null")
 	}
-	sync.HandleGetFileBlockReq(fileOwner, fileName)
+	rc, err := sync.HandleGetFileBlockReq(fileOwner, fileName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+	}
+
+	a, _ := protocols.RESDecoding(rc.ResultList)
+
+	bb := bytes.NewBuffer(a[0].FileBlock)
+	fb, _ := protocols.FBNewByBuf(bb)
+	c.JSON(http.StatusOK, gin.H{
+		"file_blcok":fb,
+	})
 	return nil
 }
 
@@ -72,7 +87,7 @@ func UploadFileForMore(c *gin.Context) error {
 		fBuf := make([]byte, fileSize)
 		f, _ := file.Open()
 		f.Read(fBuf)
-		conn, _ := net.Dial("tcp", ":"+sys.LoadTSys().SyncPort)
+		conn, _ := net.Dial("tcp", ":"+sys.TSysNew().SyncPort)
 		if conn != nil {
 			err := sync.HandleSendUploadSyncReq(fBuf, fileName, fileOwner)
 			if err != nil {

@@ -19,7 +19,7 @@ func (tf *TSysLog) InitSysLogDB(fileName string) error {
 	tsl := TSysLog{
 		LogItem: []any{"1", "2"},
 	}
-	sysDBPath := LoadTSys().DBRootPath + "db/logs/"
+	sysDBPath := TSysNew().DBRootPath + "db/logs/"
 	logFilePath := sysDBPath + fileName
 	f, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE, 0777)
 	defer f.Close()
@@ -36,7 +36,7 @@ func (tf *TSysLog) InitSysLogDB(fileName string) error {
 }
 
 func LoadSysLogByType(logType int) *TSysLog {
-	dir := LoadTSys().DBRootPath + "db/logs/"
+	dir := TSysNew().DBRootPath + "db/logs/"
 	sysDBPath := dir + "/" + logs.LOG_TYPE_MAPPING[logType]
 	fp, err := os.OpenFile(sysDBPath, os.O_RDONLY, 0755)
 	defer fp.Close()

@@ -7,7 +7,7 @@ import (
 )
 
 func GetSysInfo(c *gin.Context) {
-	c.JSON(http.StatusOK, sys.LoadTSys())
+	c.JSON(http.StatusOK, sys.TSysNew())
 }
 
 func GetFileSysInfo(c *gin.Context) {

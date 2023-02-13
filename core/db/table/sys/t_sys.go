@@ -57,7 +57,7 @@ func (ts *TSys) IniSysDB(fileName string,
 	return nil
 }
 
-func LoadTSys() *TSys {
+func TSysNew() *TSys {
 	dir, _ := os.Getwd()
 	sysDBPath := dir + "/sys.json"
 	fp, err := os.OpenFile(sysDBPath, os.O_RDONLY, 0777)

@@ -9,9 +9,7 @@ import (
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/rules"
 	"github.com/derain/internal/pkg/utils"
-	"github.com/derain/test"
 	"io"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -20,42 +18,42 @@ import (
 
 // Protocol for file block
 type FileBlock struct {
-	Head FileBlockHead // file block head
-	Body FileBlockBody // file block body
-	Foot FileBlockFoot // file block foot
+	Head FileBlockHead `json:"head"` // file block head
+	Body FileBlockBody `json:"body"` // file block body
+	Foot FileBlockFoot `json:"foot"` // file block foot
 }
 
 // Protocol for file block head
 type FileBlockHead struct {
-	ProtocolType             uint8  // Declare the protocol type , 1 byte
-	FileIndexSize            uint64 // The index of the file to which the file block belongs , 8 byte
-	FileNameSize             uint64 // The file name of the file to which the file block belongs , 8 byte
-	FileTotalSize            uint64 // The total size of the file to which the file block belongs , 8 byte
-	FileTotalBlockNum        uint64 // The total block num of the file to which the file block belongs , 8 byte
-	FileBlockPosition        uint32 // The space occupied by the file block in the file needs to be concatenated and read sequentially, starting from 0 , 4 byte
-	FileBlockSize            uint32 // File block data size , 4 byte
-	FileOwnerSize            uint32 // File block data size , 4 byte
-	FileBlockStorageNodeSize uint64 // File block storage node , 8 byte
-	FileBlockEndFlagSize     uint32 // File block end flag data size , 4 byte
+	ProtocolType             uint8  `json:"protocol_type"`                // Declare the protocol type , 1 byte
+	FileIndexSize            uint64 `json:"file_index_size"`              // The index of the file to which the file block belongs , 8 byte
+	FileNameSize             uint64 `json:"file_name_size"`               // The file name of the file to which the file block belongs , 8 byte
+	FileTotalSize            uint64 `json:"file_total_size"`              // The total size of the file to which the file block belongs , 8 byte
+	FileTotalBlockNum        uint64 `json:"file_total_block_num"`         // The total block num of the file to which the file block belongs , 8 byte
+	FileBlockPosition        uint32 `json:"file_block_position"`          // The space occupied by the file block in the file needs to be concatenated and read sequentially, starting from 0 , 4 byte
+	FileBlockSize            uint32 `json:"file_block_size"`              // File block data size , 4 byte
+	FileOwnerSize            uint32 `json:"file_owner_size"`              // File block data size , 4 byte
+	FileBlockStorageNodeSize uint64 `json:"file_block_storage_node_size"` // File block storage node , 8 byte
+	FileBlockEndFlagSize     uint32 `json:"file_block_end_flag_size"`     // File block end flag data size , 4 byte
 }
 
 // Protocol for file block body
 type FileBlockBody struct {
-	FileIndex            []byte // file index
-	FileBlockStorageNode []byte // file block storage node
-	FileName             []byte // file name
-	FileOwner            []byte // file owner data
-	FileBlockData        []byte // file block data
+	FileIndex            []byte `json:"file_index"`              // file index
+	FileBlockStorageNode []byte `json:"file_block_storage_node"` // file block storage node
+	FileName             []byte `json:"file_name"`               // file name
+	FileOwner            []byte `json:"file_owner"`              // file owner data
+	FileBlockData        []byte `json:"file_block_data"`         // file block data
 }
 
 // Protocol for file block foot
 type FileBlockFoot struct {
-	EndFlag []byte // file block end flag
+	EndFlag []byte `json:"end_flag"` // file block end flag
 }
 
 // Protocol Result
 type FileBlockSyncResult struct {
-	BadNodeList []any // bad node list
+	BadNodeList []any `json:"bad_node_list"` // bad node list
 }
 
 // ------------------------- struct handle start -------------------------
@@ -401,33 +399,40 @@ func FBDnCoding(f []byte) (*FileBlock, error) {
 // ------------------------- struct handle end -------------------------
 
 // ------------------------- sync handle start -------------------------
+
+// file block full sync
 func FBSyncFull(fb *FileBlock, netActionType uint8) {
-	nodeList := node.TRTNew().NodeList
-	for _, n := range nodeList {
-		c, err := net.Dial("tcp", n.Addr+":"+n.Port)
-		if err != nil {
-			// bad node hanlde
-		}
-		fbb, err := FBBuf(fb)
-		np := NPNew(netActionType, fbb.Bytes())
-		err = NPWriter(c, np)
-		if err != nil {
-			// bad node hanlde
-		}
+	// route table
+	rtr := node.RandomNodeGetter(rules.RANDOM_SYNC_NODE_NUM)
+	// storage node
+	var storageNode []*node.TFBNodeInfo
+	for _, nd := range rtr {
+		ni := new(node.TFBNodeInfo)
+		ni.Addr = nd.Addr
+		ni.Port = nd.Port
+		ni.FileIndex = string(fb.Body.FileIndex)
+		ni.FileBlockPosition = fb.Head.FileBlockPosition
+		storageNode = append(storageNode, ni)
 	}
+	// encode node list
+	fb.Body.FileBlockStorageNode, _ = json.Marshal(storageNode)
+	fb.Head.FileBlockStorageNodeSize = uint64(len(fb.Body.FileBlockStorageNode))
+	fbb, err := FBBuf(fb)
+	if err != nil {
+		return
+	}
+	np := NPNew(netActionType, fbb.Bytes())
+	np.NPSendFull(rtr)
 }
 
+// file block one sync
 func FBSyncOne(fb *FileBlock, n node.TNodeInfo, netActionType uint8) {
-	c, err := net.Dial("tcp", n.Addr+":"+n.Port)
-	if err != nil {
-		// bad node hanlde
-	}
 	fbb, err := FBBuf(fb)
-	np := NPNew(netActionType, fbb.Bytes())
-	err = NPWriter(c, np)
 	if err != nil {
-		// bad node hanlde
+		return
 	}
+	np := NPNew(netActionType, fbb.Bytes())
+	np.NPSendOne(n)
 }
 
 // sync save to localhost
@@ -462,104 +467,4 @@ func RFBByPath(filePath string) (*FileBlock, error) {
 		return nil, err
 	}
 	return fb, nil
-}
-
-// write file to network by fileblock protocol
-func WFBToNet(file []byte, fileSize uint64) (bool, error) {
-	fr := bytes.NewReader(file)
-	fbuf := make([]byte, len(file))
-	fr.Read(fbuf)
-	// file name
-	fileName := test.TFName
-	// file account
-	ownerAddr := test.TOwner
-	// route table
-	routeTable := node.TRTNew().NodeList
-	// split file
-	fl := utils.SplitFile(fbuf)
-	// file position,increment
-	FBPosition := uint32(0)
-	// file uuid
-	fUUID := utils.CrtUUID()
-	// create channel list
-	fBChannel := make(chan FileBlockSyncResult)
-	// ---------------- write processing start ----------------
-	for e := fl.Front(); e != nil; e = e.Next() {
-		// create file block storage route table
-		fBSNodeRoutable := new(node.TFBRouteTable)
-		// create file blcok storage node list
-		for _, nd := range routeTable {
-			ip := nd.Addr
-			port := nd.Port
-			// node health check
-			_, er := net.Dial("tcp", ip+":"+port)
-			// bad node
-			if er != nil {
-				continue
-			}
-			// file block storage healthy node
-			node := node.TFBNodeInfo{ip, port, fUUID, FBPosition}
-			fBSNodeRoutable.NodeList = append(fBSNodeRoutable.NodeList, node)
-		}
-		// write in file block
-		go WFBToRt(fUUID, fileName, fileSize, uint64(fl.Len()),
-			FBPosition, e.Value.([]byte), ownerAddr, fBSNodeRoutable, fBChannel)
-		// file block position increase
-		FBPosition += 1
-	}
-	// ---------------- write processing end ----------------
-	// file block sync result
-	for i := 0; i < fl.Len(); i++ {
-		res := <-fBChannel
-		log.Println("file block sync result:", res)
-	}
-	// error hanlde
-	return true, nil
-}
-
-// write file block to route table by fileblock protocol
-func WFBToRt(fUUID string,
-	fileName string,
-	fileSize uint64,
-	fileTotalBlockNum uint64,
-	fileBlockPosition uint32,
-	fileBlock []byte,
-	ownerAddr string,
-	fBSNodeRoutable *node.TFBRouteTable,
-	c chan FileBlockSyncResult) error {
-	// file block result
-	fBr := new(FileBlockSyncResult)
-	// bad node
-	var badNodeList []any
-	// encode node list
-	nLb, _ := json.Marshal(fBSNodeRoutable.NodeList)
-	// create file block
-	fs := FBNew(fUUID, fileName, fileSize, fileTotalBlockNum, fileBlockPosition, uint32(len(fileBlock)),
-		uint32(len([]byte(ownerAddr))), uint64(len(nLb)), ownerAddr, rules.FILE_BLCOK_END_FLAG, nLb, fileBlock)
-	//file block buffer
-	buff := bytes.NewBuffer([]byte{})
-	// read in file block protocol
-	fbbuf, fberr := FBBuf(fs)
-	if fberr != nil {
-		return fberr
-	}
-	buff.Write(fbbuf.Bytes())
-	// file block sync
-	for _, n := range fBSNodeRoutable.NodeList {
-		c, er := net.Dial("tcp", n.Addr+":"+n.Port)
-		if er != nil {
-			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
-			// bad node
-			continue
-		}
-		_, werr := c.Write(buff.Bytes())
-		if werr != nil {
-			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
-			// write in error
-			continue
-		}
-	}
-	fBr.BadNodeList = badNodeList
-	c <- *fBr
-	return nil
 }

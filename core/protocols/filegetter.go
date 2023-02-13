@@ -14,17 +14,17 @@ import (
 // ------------------------- struct handle start -------------------------
 
 type FileGetter struct {
-	ProtocolType    uint8 // Declare the protocol type , 1 byte
-	FileOwnerSize   uint32
-	FileNameSize    uint64
-	FileEndFlagSize uint32 // File block end flag data size , 4 bytz
-	FileName        []byte // file name
-	FileOwner       []byte // file owner data
-	EndFlag         []byte // file block end flag
+	ProtocolType    uint8 `json:"protocol_type"`// Declare the protocol type , 1 byte
+	FileOwnerSize   uint32 `json:"file_owner_size"`
+	FileNameSize    uint64 `json:"file_name_size"`
+	FileEndFlagSize uint32 `json:"file_end_flag_size"`// File block end flag data size , 4 bytz
+	FileName        []byte `json:"file_name"`// file name
+	FileOwner       []byte `json:"file_owner"`// file owner data
+	EndFlag         []byte `json:"end_flag"`// file block end flag
 }
 
-func GFNew(ows uint32, fns uint64, fn []byte, fo []byte) *FileGetter {
-	gf := FileGetter{
+func FGNew(ows uint32, fns uint64, fn []byte, fo []byte) *FileGetter {
+	fg := FileGetter{
 		rules.FILE_GETTER_PROTOCOL,
 		ows,
 		fns,
@@ -33,95 +33,95 @@ func GFNew(ows uint32, fns uint64, fn []byte, fo []byte) *FileGetter {
 		fo,
 		[]byte(rules.FILE_BLCOK_END_FLAG),
 	}
-	return &gf
+	return &fg
 }
 
-func FGBuf(gf *FileGetter) (*bytes.Buffer, error) {
+func FGBuf(fg *FileGetter) (*bytes.Buffer, error) {
 	buff := bytes.NewBuffer([]byte{})
 	// read in protocol type
-	binary.Write(buff, binary.BigEndian, gf.ProtocolType)
+	binary.Write(buff, binary.BigEndian, fg.ProtocolType)
 	// read in file index
-	binary.Write(buff, binary.BigEndian, gf.FileOwnerSize)
-	binary.Write(buff, binary.BigEndian, gf.FileNameSize)
-	binary.Write(buff, binary.BigEndian, gf.FileEndFlagSize)
-	binary.Write(buff, binary.BigEndian, gf.FileName)
-	binary.Write(buff, binary.BigEndian, gf.FileOwner)
-	binary.Write(buff, binary.BigEndian, rules.FILE_BLCOK_END_FLAG)
+	binary.Write(buff, binary.BigEndian, fg.FileOwnerSize)
+	binary.Write(buff, binary.BigEndian, fg.FileNameSize)
+	binary.Write(buff, binary.BigEndian, fg.FileEndFlagSize)
+	binary.Write(buff, binary.BigEndian, fg.FileName)
+	binary.Write(buff, binary.BigEndian, fg.FileOwner)
+	binary.Write(buff, binary.BigEndian, fg.EndFlag)
 	return buff, nil
 }
 
 // file getter net un package
 func FGNetUnPack(conn net.Conn) (*FileGetter, error) {
-	fb := new(FileGetter)
-	fb, err := FGReader(conn)
+	fg := new(FileGetter)
+	fg, err := FGReader(conn)
 	if err != nil {
 		return nil, err
 	}
-	return fb, err
+	return fg, err
 }
 
 // file getter protocol reader
 func FGReader(r io.Reader) (*FileGetter, error) {
-	gf := new(FileGetter)
+	fg := new(FileGetter)
 	// ---------------------------- protocol head ----------------------------
 	// protocol type
-	protocolTypeBuf := make([]byte, int(unsafe.Sizeof(gf.ProtocolType)))
+	protocolTypeBuf := make([]byte, int(unsafe.Sizeof(fg.ProtocolType)))
 	_, err := r.Read(protocolTypeBuf)
 	ptBuf := bytes.NewReader(protocolTypeBuf)
-	binary.Read(ptBuf, binary.BigEndian, &gf.ProtocolType)
+	binary.Read(ptBuf, binary.BigEndian, &fg.ProtocolType)
 	if err != nil {
-		return gf, err
+		return fg, err
 	}
 	// file owner size
-	fileOwnerSizeBuf := make([]byte, int(unsafe.Sizeof(gf.FileOwnerSize)))
+	fileOwnerSizeBuf := make([]byte, int(unsafe.Sizeof(fg.FileOwnerSize)))
 	_, err = r.Read(fileOwnerSizeBuf)
 	fos := bytes.NewReader(fileOwnerSizeBuf)
-	binary.Read(fos, binary.BigEndian, &gf.FileOwnerSize)
+	binary.Read(fos, binary.BigEndian, &fg.FileOwnerSize)
 	if err != nil {
-		return gf, err
+		return fg, err
 	}
 	// file name size
-	fileNameSizeBuf := make([]byte, int(unsafe.Sizeof(gf.FileNameSize)))
+	fileNameSizeBuf := make([]byte, int(unsafe.Sizeof(fg.FileNameSize)))
 	_, err = r.Read(fileNameSizeBuf)
 	fnsBuf := bytes.NewReader(fileNameSizeBuf)
-	binary.Read(fnsBuf, binary.BigEndian, &gf.FileNameSize)
+	binary.Read(fnsBuf, binary.BigEndian, &fg.FileNameSize)
 	if err != nil {
-		return gf, err
+		return fg, err
 	}
 	//  end size
-	endBuf := make([]byte, int(unsafe.Sizeof(gf.FileEndFlagSize)))
+	endBuf := make([]byte, int(unsafe.Sizeof(fg.FileEndFlagSize)))
 	_, err = r.Read(endBuf)
 	ebBuf := bytes.NewReader(endBuf)
-	binary.Read(ebBuf, binary.BigEndian, &gf.FileEndFlagSize)
+	binary.Read(ebBuf, binary.BigEndian, &fg.FileEndFlagSize)
 	if err != nil {
-		return gf, err
+		return fg, err
 	}
 	// ---------------------------- protocol body ----------------------------
 	// file owner data
-	fileOwner := make([]byte, gf.FileOwnerSize)
-	fon, err := r.Read(fileOwner)
-	gf.FileOwner = fileOwner[:fon]
+	fileOwner := make([]byte, fg.FileOwnerSize)
+	_, err = r.Read(fileOwner)
+	fg.FileOwner = fileOwner
 	if err != nil {
-		return gf, err
+		return fg, err
 	}
 	// file name data
-	fileNameBuf := make([]byte, gf.FileNameSize)
-	nn, err := r.Read(fileNameBuf)
-	gf.FileName = fileNameBuf[:nn]
+	fileNameBuf := make([]byte, fg.FileNameSize)
+	_, err = r.Read(fileNameBuf)
+	fg.FileName = fileNameBuf
 	if err != nil {
-		return gf, err
+		return fg, err
 	}
 	// end data
-	endB := make([]byte, gf.FileEndFlagSize)
-	n, err := r.Read(endB)
-	gf.EndFlag = endB[:n]
+	endB := make([]byte, fg.FileEndFlagSize)
+	_, err = r.Read(endB)
+	fg.EndFlag = endB
 	if err != nil {
-		return gf, err
+		return fg, err
 	}
 	if string(endB) == rules.FILE_BLCOK_END_FLAG {
-		return gf, nil
+		return fg, nil
 	}
-	return gf, errors.New("illegal agreement")
+	return fg, errors.New("illegal agreement")
 }
 
 func FGWriter(w io.Writer, fg *FileGetter) error {

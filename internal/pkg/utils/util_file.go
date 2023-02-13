@@ -63,7 +63,15 @@ func SplitFile(fb []byte) list.List {
 
 // read file to localhost
 func RFToLocal(filePath string) ([]byte, error) {
-	return os.ReadFile(filePath)
+	fp, err := os.OpenFile(filePath, os.O_RDONLY, 0777)
+	defer fp.Close()
+	if err != nil {
+		return nil, err
+	}
+	fInfo, _ := fp.Stat()
+	buf := make([]byte, fInfo.Size())
+	fp.Read(buf)
+	return buf, nil
 }
 
 // write file to localhost

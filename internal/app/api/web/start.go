@@ -11,7 +11,7 @@ func StartWebApiService() {
 	// init server
 	initServer(r)
 	// set port
-	r.Run(":" + sys.LoadTSys().WebApiPort)
+	r.Run(":" + sys.TSysNew().WebApiPort)
 }
 
 func initServer(r *gin.Engine) {

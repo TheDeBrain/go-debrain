@@ -2,9 +2,7 @@ package sync
 
 import (
 	"container/list"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/derain/core/db/table/node"
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/protocols"
@@ -27,23 +25,31 @@ func HandleSendUploadSyncReq(file []byte, fileName string, fileOwner string) err
 }
 
 // send get file block request
-func HandleGetFileBlockReq(fileOwner string, fileName string) error {
+func HandleGetFileBlockReq(fileOwner string, fileName string) (*protocols.ResultCollect, error) {
 	fob := []byte(fileOwner)
 	fn := []byte(fileName)
-	protocols.GFNew(uint32(len(fob)), uint64(len(fn)), fob, fn)
-	return nil
+	fg := protocols.FGNew(uint32(len(fob)), uint64(len(fn)), fob, fn)
+	fgp, _ := protocols.FGBuf(fg)
+	np := protocols.NPNew(rules.FILE_GETTER_PROTOCOL, fgp.Bytes())
+	// route table
+	rtr := node.RandomNodeGetter(rules.RANDOM_SYNC_NODE_NUM)
+	rc, err := np.NPSendFull(rtr)
+	if err != nil {
+		return nil, err
+	}
+	return rc, nil
 }
 
 // Handle fetch file block requests
 // Output file chunks to client
 func handleGetFileResponse(conn net.Conn) error {
 	// get file protocol
-	gf, err := protocols.FGNetUnPack(conn)
+	fg, err := protocols.FGNetUnPack(conn)
 	if err != nil {
 		return err
 	}
-	fileOwner := string(gf.FileOwner)
-	fileName := string(gf.FileName)
+	fileOwner := string(fg.FileOwner)
+	fileName := string(fg.FileName)
 	//file system
 	fSys := sys.LoadFileSys()
 	// storage path
@@ -52,26 +58,34 @@ func handleGetFileResponse(conn net.Conn) error {
 	filePath := storagePath
 	filePath = filePath + fileOwner
 	filePath = filePath + "/" + fileName
-	m, err := filepath.Glob(filePath + "[1-2]")
+	m, err := filepath.Glob(filePath + "_" + "[1-3]")
 	if err != nil {
 		return err
 	}
 	// the one file
 	if len(m) > 0 {
-		val := m[0]
-		fB, err := protocols.RFBByPath(val)
-		if err != nil {
-			return err
+		for _, f := range m {
+			val := f
+			fB, err := protocols.RFBByPath(val)
+			if err != nil {
+				return err
+			}
+			// file block node route
+			//nodeList := new([]node.TFBNodeInfo)
+			// decode
+			//json.Unmarshal(fB.Body.FileBlockStorageNode, &nodeList)
+			//for _, node := range *nodeList {
+			//	fmt.Println("node list--", node)
+			//}
+			res, _ := protocols.RESNew(conn.LocalAddr().String(), sys.TSysNew().SyncPort,
+				rules.NET_PACK_OK_FLAG, "ok", fB)
+			protocols.RESWriter(conn, res)
 		}
-		// file block node route
-		nodeList := new([]node.TFBNodeInfo)
-		// decode
-		json.Unmarshal(fB.Body.FileBlockStorageNode, &nodeList)
-		for node := range *nodeList {
-			fmt.Println("node list--", node)
-		}
-
 	} else {
+		// addr string, port string, flag string, des string
+		res, _ := protocols.RESNew(conn.LocalAddr().String(), sys.TSysNew().SyncPort,
+			rules.NET_PACK_ERROR_FLAG, "the file does not exist for this node", nil)
+		protocols.RESWriter(conn, res)
 		// file does not exist
 		return errors.New("the file does not exist for this node")
 	}

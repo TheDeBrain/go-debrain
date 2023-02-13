@@ -18,8 +18,8 @@ type TFileSys struct {
 func (tf *TFileSys) InitFileSysDB(fileName string) error {
 	dir, _ := os.Getwd()
 	tfs := TFileSys{
-		SysLogPath: LoadTSys().DBRootPath + "logs/",
-		FileStoragePath: LoadTSys().DBRootPath + "files/",
+		SysLogPath: TSysNew().DBRootPath + "logs/",
+		FileStoragePath: TSysNew().DBRootPath + "files/",
 	}
 	sysDBPath := dir + "/" + fileName
 	f, err := os.OpenFile(sysDBPath, os.O_RDWR|os.O_CREATE, 0777)

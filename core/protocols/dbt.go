@@ -21,9 +21,9 @@ type DBTableFoot struct {
 
 // Protocol for database
 type DBTable struct {
-	Head DBTableHead // file block head
-	Body DBTableBody // file block body
-	Foot DBTableFoot // file block foot
+	Head DBTableHead `json:"head"`// file block head
+	Body DBTableBody `json:"body"`// file block body
+	Foot DBTableFoot `json:"foot"`// file block foot
 }
 
 func DBTNew(fileIndex string, fileName string, fileSize uint64,

@@ -13,7 +13,7 @@ import (
 
 // start sync service
 func StartSyncService() error {
-	sys := sys.LoadTSys()
+	sys := sys.TSysNew()
 	ln, err := net.Listen("tcp", ":"+sys.SyncPort)
 	defer ln.Close()
 	if err != nil {
@@ -63,9 +63,8 @@ func HandleSyncService(conn net.Conn) error {
 				handleUploadSyncReq(conn)
 				break
 			}
-		case rules.GET_FILE_PROTOCOL:
+		case rules.FILE_GETTER_PROTOCOL:
 			{
-				// Process file acquisition requests and output file blocks to the client
 				handleGetFileResponse(conn)
 				break
 			}

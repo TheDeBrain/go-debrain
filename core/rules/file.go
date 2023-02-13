@@ -7,6 +7,4 @@ const (
 	FILE_BLCOK_SIZE_CONSTRAINT = 1024 * 2
 	// Network single maximum file processing capacity
 	MAX_FILE_SIZE = 1024 * 1024 * 50
-	// Thie is file block end flag
-	FILE_BLCOK_END_FLAG = "end"
 )
