@@ -28,6 +28,11 @@
 * Twitter: [@TheDeBrain](https://twitter.com/TheDeBrain)
 * Github: [@TheDeBrain](https://github.com/TheDeBrain)
 * Medium: [@thedebrain](https://medium.com/@thedebrain)
+* GitBook: [@debrain](https://debrain.gitbook.io/debrain/)
+
+## Document
+
+* GitBook: [@debrain](https://debrain.gitbook.io/debrain/)
 
 ## Show your support
 
