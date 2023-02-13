@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/derain/core/db/table/node"
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/protocols"
@@ -68,9 +67,6 @@ func handleGetFileResponse(conn net.Conn) error {
 		// file block node route
 		nodeList := new([]node.TFBNodeInfo)
 		json.Unmarshal(fB.Body.FileBlockStorageNode, &nodeList)
-		fmt.Println("文件块节点路由")
-		fmt.Println(nodeList)
-		fmt.Println(val)
 	} else {
 		// file does not exist
 		return errors.New("the file does not exist for this node")
