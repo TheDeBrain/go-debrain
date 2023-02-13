@@ -7,7 +7,6 @@ import (
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/protocols"
 	"github.com/derain/core/rules"
-	"io"
 	"log"
 	"net"
 )
@@ -34,36 +33,41 @@ func StartSyncService() error {
 // handle sync service
 func HandleSyncService(conn net.Conn) error {
 	for {
-		protocol := new(protocols.CommProtocol)
+		protocol := new(protocols.NetPack)
 		// protocol type handle
-		protocolTypeBuf := make([]byte, rules.PROTOCOL_TYPE_BYTE_NUM)
+		protocolTypeBuf := make([]byte, rules.NET_ACTION_TYPE_SIZE)
 		_, err := conn.Read(protocolTypeBuf)
-		if err != nil || err == io.EOF {
+		if err != nil{
 			return err
 		}
 		ptBuf := bytes.NewReader(protocolTypeBuf)
-		binary.Read(ptBuf, binary.BigEndian, &protocol.ProtocolType)
-		switch protocol.ProtocolType {
-		case uint8(rules.FILE_BLOCK_CLIENT_SYNC_PROTOCOL):
+		binary.Read(ptBuf, binary.BigEndian, &protocol.NetActionType)
+		switch protocol.NetActionType {
+		case rules.FILE_BLOCK_CLIENT_SYNC_REQ:
 			{
 				handleClientSyncReq(conn)
 				break
 			}
-		case uint8(rules.FILE_BLOCK_BETWEEN_SERVER_SYNC_PROTOCOL):
+		case rules.FILE_BLOCK_CLIENT_SYNC_RECEIVE:
 			{
-				handleBetweenServerSyncReq(conn)
+				handleClientSyncReqReceive(conn)
 				break
 			}
-		case uint8(rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL):
+		case rules.FILE_BLOCK_SERVER_BROADCAST_SYNC:
+			{
+				handleFileBlockServerBroadCastSync(conn)
+				break
+			}
+		case rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL:
 			{
 				handleUploadSyncReq(conn)
 				break
 			}
-		case uint8(rules.GET_FILE_PROTOCOL):
+		case rules.GET_FILE_PROTOCOL:
 			{
-			    // Process file acquisition requests and output file blocks to the client
+				// Process file acquisition requests and output file blocks to the client
 				handleGetFileResponse(conn)
-			    break
+				break
 			}
 		default:
 			{

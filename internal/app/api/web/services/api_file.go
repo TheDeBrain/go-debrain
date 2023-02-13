@@ -5,7 +5,6 @@ import (
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/rules"
 	"github.com/derain/core/sync"
-	"github.com/derain/internal/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"log"
 	"math/rand"
@@ -26,7 +25,7 @@ func GetFile(c *gin.Context) error {
 	if len(fileName) == 0 {
 		return errors.New("user address can not null")
 	}
-	sync.HandleGetFileBlockReq(fileOwner,fileName)
+	sync.HandleGetFileBlockReq(fileOwner, fileName)
 	return nil
 }
 
@@ -42,25 +41,19 @@ func UploadFileForOne(c *gin.Context) error {
 		log.Println("file size exceeds limit")
 		return err
 	}
+	// file name
+	fileName := c.Request.PostFormValue("fileName")
+	// file owner
+	fileOwner := c.Request.PostFormValue("fileOwner")
 	// file buf
 	fbuf := make([]byte, headers.Size)
 	f.Read(fbuf)
-	bl := utils.SplitFile(fbuf)
+	err = sync.HandleSendUploadSyncReq(fbuf, fileName, fileOwner)
+	if err != nil {
+		return err
+	}
 	rand.Seed(time.Now().UnixNano())
-	for e := bl.Front(); e != nil; e = e.Next() {
-		//num := rand.Intn(30001)
-		//utils.WFToLocal(e.Value.([]byte), fsys.FileStoragePath+headers.Filename+"-"+string(num))
-	}
 	c.String(http.StatusOK, headers.Filename)
-	// test connect
-	conn, _ := net.Dial("tcp", ":"+sys.LoadTSys().SyncPort)
-	if conn != nil {
-		for e := bl.Front(); e != nil; e = e.Next() {
-			err := sync.HandleSendUploadSyncReq(fbuf)
-			if err != nil {
-			}
-		}
-	}
 	return nil
 }
 
@@ -69,15 +62,19 @@ func UploadFileForMore(c *gin.Context) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 	}
+	// file array
 	files := form.File["files"]
+	// file owner
+	fileOwner := c.Request.PostFormValue("fileOwner")
 	for _, file := range files {
-		fSize := file.Size
-		fBuf := make([]byte, fSize)
+		fileSize := file.Size
+		fileName := file.Filename
+		fBuf := make([]byte, fileSize)
 		f, _ := file.Open()
 		f.Read(fBuf)
 		conn, _ := net.Dial("tcp", ":"+sys.LoadTSys().SyncPort)
 		if conn != nil {
-			err := sync.HandleSendUploadSyncReq(fBuf)
+			err := sync.HandleSendUploadSyncReq(fBuf, fileName, fileOwner)
 			if err != nil {
 				return err
 			}

@@ -4,24 +4,24 @@ import (
 	"container/list"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/derain/core/db/table/node"
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/protocols"
 	"github.com/derain/core/rules"
 	"github.com/derain/test"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
 )
 
 // handle send upload sync request
-func HandleSendUploadSyncReq(b []byte) error {
-	ptl := protocols.CommProtocol{
-		ProtocolType: rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL,
-	}
-	_, err := protocols.WFBToNet(b, uint64(len(b)), &ptl)
-	if err != nil {
-		return err
+// b : file byte array
+func HandleSendUploadSyncReq(file []byte, fileName string, fileOwner string) error {
+	fbArr := protocols.FBNewArrayByFile(file, fileName, fileOwner)
+	for _, fb := range fbArr {
+		protocols.FBSyncFull(fb, rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL)
 	}
 	return nil
 }
@@ -30,8 +30,7 @@ func HandleSendUploadSyncReq(b []byte) error {
 func HandleGetFileBlockReq(fileOwner string, fileName string) error {
 	fob := []byte(fileOwner)
 	fn := []byte(fileName)
-	  protocols.GFNew(uint32(len(fob)), uint64(len(fn)), fob, fn)
-
+	protocols.GFNew(uint32(len(fob)), uint64(len(fn)), fob, fn)
 	return nil
 }
 
@@ -60,13 +59,18 @@ func handleGetFileResponse(conn net.Conn) error {
 	// the one file
 	if len(m) > 0 {
 		val := m[0]
-		fB, err := protocols.RFBInLocal(val)
+		fB, err := protocols.RFBByPath(val)
 		if err != nil {
 			return err
 		}
 		// file block node route
 		nodeList := new([]node.TFBNodeInfo)
+		// decode
 		json.Unmarshal(fB.Body.FileBlockStorageNode, &nodeList)
+		for node := range *nodeList {
+			fmt.Println("node list--", node)
+		}
+
 	} else {
 		// file does not exist
 		return errors.New("the file does not exist for this node")
@@ -76,9 +80,6 @@ func handleGetFileResponse(conn net.Conn) error {
 
 // handle client sync request
 func handleClientSyncReq(conn net.Conn) error {
-	ptl := protocols.CommProtocol{
-		ProtocolType: rules.FILE_BLOCK_UPLOAD_SYNC_PROTOCOL,
-	}
 	fileList := list.New()
 	// test
 	fileList.PushBack(test.Path1)
@@ -95,29 +96,54 @@ func handleClientSyncReq(conn net.Conn) error {
 		fbuf := make([]byte, fInfo.Size())
 		f.Read(fbuf)
 		// write in sync net
-		protocols.WFBToNet(fbuf, uint64(len(fbuf)), &ptl)
+		np := protocols.NPNew(rules.FILE_BLOCK_CLIENT_SYNC_RECEIVE, fbuf)
+		protocols.NPWriter(conn, np)
 	}
+	return nil
+}
+
+// handle client sync request receive
+func handleClientSyncReqReceive(con net.Conn) error {
+	fb, err := protocols.FBReader(con)
+	if err != nil {
+		log.Println("handle client sync request receive error")
+		return err
+	}
+	protocols.FBSaveToLocal(fb)
+	return nil
+}
+
+// handle client sync request receive
+func handleFileBlockServerBroadCastSync(con net.Conn) error {
+	fb, err := protocols.FBReader(con)
+	if err != nil {
+		log.Println("handle client sync request receive error")
+		return err
+	}
+	protocols.FBSaveToLocal(fb)
 	return nil
 }
 
 // handle between server sync request
 func handleBetweenServerSyncReq(conn net.Conn) error {
 	// read in sync net
-	err := protocols.RFBToLocalInNet(conn)
+	fb, err := protocols.FBNetUnPack(conn)
 	if err != nil {
 		return err
 	}
-	// cync db
+	// save local
+	protocols.FBSaveToLocal(fb)
 	return nil
 }
 
 // handle upload sync request
 func handleUploadSyncReq(conn net.Conn) error {
 	// read in sync net
-	err := protocols.RFBToLocalInNet(conn)
+	fb, err := protocols.FBNetUnPack(conn)
 	if err != nil {
 		return err
 	}
-	// cync db
+	// save local
+	protocols.FBSaveToLocal(fb)
 	return nil
 }

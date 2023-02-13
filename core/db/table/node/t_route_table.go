@@ -12,6 +12,25 @@ type TRouteTable struct {
 	NodeList []TNodeInfo `json:"node_list"`
 }
 
+// get route table
+func TRTNew() *TRouteTable {
+	dir, _ := os.Getwd()
+	tRouteTableDBPath := dir + "/route_table.json"
+	fp, err := os.OpenFile(tRouteTableDBPath, os.O_RDONLY, 0755)
+	defer fp.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	data := make([]byte, 1024*1024)
+	n, err := fp.Read(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var tRouteTable TRouteTable
+	err = json.Unmarshal(data[:n], &tRouteTable)
+	return &tRouteTable
+}
+
 //Initialize the route table
 func (rt *TRouteTable) InitRouteTable(fileName string) error {
 	dir, _ := os.Getwd()
@@ -29,20 +48,4 @@ func (rt *TRouteTable) InitRouteTable(fileName string) error {
 	return nil
 }
 
-func LoadRouteTable() *TRouteTable {
-	dir, _ := os.Getwd()
-	tRouteTableDBPath := dir + "/route_table.json"
-	fp, err := os.OpenFile(tRouteTableDBPath, os.O_RDONLY, 0755)
-	defer fp.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	data := make([]byte, 1024*1024)
-	n, err := fp.Read(data)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var tRouteTable TRouteTable
-	err = json.Unmarshal(data[:n], &tRouteTable)
-	return &tRouteTable
-}
+
