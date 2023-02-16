@@ -11,10 +11,11 @@ func StartWebApiService() {
 	// init server
 	initServer(r)
 	// set port
-	r.Run(":" + sys.TSysNew().WebApiPort)
+	r.Run(":" + string(sys.TSysNew().WebApiPort))
 }
 
 func initServer(r *gin.Engine) {
+	// ------------------ system api start ------------------
 	// get system info
 	r.GET("/sys/getSysInfo", func(c *gin.Context) {
 		services.GetSysInfo(c)
@@ -23,16 +24,20 @@ func initServer(r *gin.Engine) {
 	r.GET("/sys/getFileSysInfo", func(c *gin.Context) {
 		services.GetFileSysInfo(c)
 	})
+	// ------------------ system api end ------------------
+
+	// ------------------ file api start ------------------
 	// get file
 	r.GET("/file/getFile", func(c *gin.Context) {
-		services.GetFile(c)
+		services.GetFile(c,"tcp")
 	})
 	// upload file for one
 	r.POST("/file/upload/one", func(c *gin.Context) {
-		services.UploadFileForOne(c)
+		services.UploadFileForOne(c,"udp")
 	})
 	// upload file for more
 	r.POST("/file/upload/more", func(c *gin.Context) {
-		services.UploadFileForMore(c)
+		services.UploadFileForMore(c,"udp")
 	})
+	// ------------------ file api end ------------------
 }

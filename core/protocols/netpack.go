@@ -49,7 +49,7 @@ func NPWriter(w io.Writer, na *NetPack) error {
 }
 
 // net pack full send
-func (np *NetPack) NPSendFull(nodeList []node.TNodeInfo) (*ResultCollect, error) {
+func (np *NetPack) NPSendFullTCP(nodeList []node.TNodeInfo) (*ResultCollect, error) {
 	var resArr []Result
 	for _, n := range nodeList {
 		c, err := net.Dial("tcp", n.Addr+":"+n.Port)
@@ -69,9 +69,26 @@ func (np *NetPack) NPSendFull(nodeList []node.TNodeInfo) (*ResultCollect, error)
 	return rc, nil
 }
 
+func (np *NetPack) NPSendFullUDP(nodeList []node.TNodeInfo) error {
+	for _, n := range nodeList {
+		c, err := net.Dial("udp", n.Addr+":"+string(n.Port))
+		if err != nil {
+			// bad node hanlde
+			return err
+		}
+		err = NPWriter(c, np)
+		if err != nil {
+			// bad node hanlde
+			return err
+		}
+		c.Close()
+	}
+	return nil
+}
+
 // net pack on send
 func (np *NetPack) NPSendOne(n node.TNodeInfo) {
-	c, err := net.Dial("tcp", n.Addr+":"+n.Port)
+	c, err := net.Dial("tcp", n.Addr+":"+string(n.Port))
 	if err != nil {
 		// bad node hanlde
 	}

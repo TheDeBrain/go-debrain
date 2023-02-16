@@ -413,15 +413,15 @@ func FBDeCoding(f []byte) (*FileBlock, error) {
 // ------------------------- sync handle start -------------------------
 
 // file block full sync
-func FBSyncFull(fb *FileBlock, netActionType uint8) {
+func FBSyncFull(fb *FileBlock, netActionType uint8, netType string) {
 	// route table
-	rtr := node.RandomNodeGetter(rules.RANDOM_SYNC_NODE_NUM)
+	rtr := node.RandomNodeGetter(rules.RANDOM_SYNC_NODE_NUM,netType)
 	// storage node
 	var storageNode []*node.TFBNodeInfo
 	for _, nd := range rtr {
 		ni := new(node.TFBNodeInfo)
 		ni.Addr = nd.Addr
-		ni.Port = nd.Port
+		ni.Port = string(nd.Port)
 		ni.FileIndex = string(fb.Body.FileIndex)
 		ni.FileBlockPosition = fb.Head.FileBlockPosition
 		storageNode = append(storageNode, ni)
@@ -434,7 +434,18 @@ func FBSyncFull(fb *FileBlock, netActionType uint8) {
 		return
 	}
 	np := NPNew(netActionType, fbb.Bytes())
-	np.NPSendFull(rtr)
+	switch netType {
+	case "tcp":
+		{
+			np.NPSendFullTCP(rtr)
+			break
+		}
+	case "udp":
+		{
+			np.NPSendFullUDP(rtr)
+			break
+		}
+	}
 }
 
 // file block one sync

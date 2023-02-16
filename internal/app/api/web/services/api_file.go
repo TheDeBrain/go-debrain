@@ -6,7 +6,7 @@ import (
 	"github.com/derain/core/db/table/sys"
 	"github.com/derain/core/protocols"
 	"github.com/derain/core/rules"
-	"github.com/derain/core/sync"
+	"github.com/derain/core/sync/file"
 	"github.com/gin-gonic/gin"
 	"log"
 	"math/rand"
@@ -16,7 +16,7 @@ import (
 )
 
 // get file
-func GetFile(c *gin.Context) error {
+func GetFile(c *gin.Context, netType string) error {
 	// user address
 	fileOwner := c.Query("fileOwner")
 	if len(fileOwner) == 0 {
@@ -29,15 +29,14 @@ func GetFile(c *gin.Context) error {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": "user address can not null"})
 		return errors.New("user address can not null")
 	}
-	rc, err := sync.HandleGetFileBlockReq(fileOwner, fileName)
+	rc, err := file.HandleGetFileBlockReqTCP(fileOwner, fileName)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 	}
 
 	a, _ := protocols.RESDecoding(rc.ResultList)
 
-
-	fbs,err:=protocols.FBReaderMore(bytes.NewReader(a[0].FileBlock))
+	fbs, err := protocols.FBReaderMore(bytes.NewReader(a[0].FileBlock))
 
 	//bb := bytes.NewBuffer(a[0].FileBlock)
 	//fb, _ := protocols.FBNewByBuf(bb)
@@ -48,7 +47,7 @@ func GetFile(c *gin.Context) error {
 }
 
 // upload file for one
-func UploadFileForOne(c *gin.Context) error {
+func UploadFileForOne(c *gin.Context, netType string) error {
 	//fsys := new(sys.TFileSys).Load()
 	f, headers, err := c.Request.FormFile("file")
 	if err != nil {
@@ -66,7 +65,7 @@ func UploadFileForOne(c *gin.Context) error {
 	// file buf
 	fbuf := make([]byte, headers.Size)
 	n, err := f.Read(fbuf)
-	err = sync.HandleSendUploadSyncReq(fbuf[:n], fileName, fileOwner)
+	err = file.HandleSendUploadSyncReqTCP(fbuf[:n], fileName, fileOwner)
 	if err != nil {
 		return err
 	}
@@ -76,7 +75,7 @@ func UploadFileForOne(c *gin.Context) error {
 }
 
 // upload file for more
-func UploadFileForMore(c *gin.Context) error {
+func UploadFileForMore(c *gin.Context, netType string) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 	}
@@ -84,15 +83,15 @@ func UploadFileForMore(c *gin.Context) error {
 	files := form.File["files"]
 	// file owner
 	fileOwner := c.Request.PostFormValue("fileOwner")
-	for _, file := range files {
-		fileSize := file.Size
-		fileName := file.Filename
+	for _, fl := range files {
+		fileSize := fl.Size
+		fileName := fl.Filename
 		fBuf := make([]byte, fileSize)
-		f, _ := file.Open()
+		f, _ := fl.Open()
 		f.Read(fBuf)
-		conn, _ := net.Dial("tcp", ":"+sys.TSysNew().SyncPort)
+		conn, _ := net.Dial("udp", ":"+string(sys.TSysNew().SyncPortUDP))
 		if conn != nil {
-			err := sync.HandleSendUploadSyncReq(fBuf, fileName, fileOwner)
+			err := file.HandleSendUploadSyncReqTCP(fBuf, fileName, fileOwner)
 			if err != nil {
 				return err
 			}

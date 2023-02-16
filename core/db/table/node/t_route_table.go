@@ -11,7 +11,8 @@ import (
 )
 
 type TRouteTable struct {
-	NodeList []TNodeInfo `json:"node_list"`
+	NodeListTCP []TNodeInfo `json:"node_list_tcp"`
+	NodeListUDP []TNodeInfo `json:"node_list_udp"`
 }
 
 // get route table
@@ -34,8 +35,22 @@ func TRTNew() *TRouteTable {
 }
 
 // node random getter
-func RandomNodeGetter(random int) []TNodeInfo {
-	nis := TRTNew().NodeList
+func RandomNodeGetter(random int, netType string) []TNodeInfo {
+	var nis []TNodeInfo
+	switch netType {
+	case "tcp":
+		{
+			nis = TRTNew().NodeListTCP
+		}
+	case "udp":
+		{
+			nis = TRTNew().NodeListUDP
+		}
+	default:
+		{
+			nis = TRTNew().NodeListTCP
+		}
+	}
 	if len(nis) <= random || random <= 0 {
 		return nis
 	} else {
@@ -52,7 +67,8 @@ func (rt *TRouteTable) InitRouteTable(fileName string) error {
 	dir, _ := os.Getwd()
 	routeTable := TRouteTable{}
 	// loacal address
-	routeTable.NodeList = append(routeTable.NodeList, TNodeInfo{"127.0.0.1", sys.TSysNew().SyncPort})
+	routeTable.NodeListTCP = append(routeTable.NodeListTCP, TNodeInfo{"127.0.0.1", sys.TSysNew().SyncPortTCP})
+	routeTable.NodeListUDP = append(routeTable.NodeListUDP, TNodeInfo{"127.0.0.1", sys.TSysNew().SyncPortUDP})
 	routeTableDBPath := dir + "/" + fileName
 	f, err := os.OpenFile(routeTableDBPath, os.O_RDWR|os.O_CREATE, 0777)
 	defer f.Close()

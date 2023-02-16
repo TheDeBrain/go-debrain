@@ -10,9 +10,10 @@ import (
 
 // system table
 type TSys struct {
-	SyncPort          string `json:"sync_port"`          // sync port
-	RpcPort           string `json:"rpc_port"`           // rpc port
-	WebApiPort        string `json:"web_api_port"`       // web api port
+	SyncPortTCP       string  `json:"sync_port_tcp"` // sync port
+	SyncPortUDP       string  `json:"sync_port_udp"`
+	RpcPort           string  `json:"rpc_port"`           // rpc port
+	WebApiPort        string  `json:"web_api_port"`       // web api port
 	HeartbeatInterval int    `json:"heartbeat_interval"` // node heartbeat detection interval, unit: second (s)
 	DBRootPath        string `json:"db_root_path"`       // system root path,used to store system data,modification not recommended,Important！！
 	Version           string `json:"version"`            // go-debrain version
@@ -20,26 +21,31 @@ type TSys struct {
 
 //Initialize the system database
 func (ts *TSys) IniSysDB(fileName string,
-	syncPort string,
+	syncPortTCP string,
+	syncPortUDP string,
 	rpcPort string,
 	webApiPort string,
 	dbRootPath string) error {
 	dir, _ := os.Getwd()
-	if len(syncPort) == 0 {
-		syncPort = "9000"
+	if  len(syncPortTCP)==0 {
+		syncPortTCP = "9000"
 	}
-	if len(rpcPort) == 0 {
-		rpcPort = "9001"
+	if len(syncPortUDP)==0 {
+		syncPortUDP = "9001"
 	}
-	if len(webApiPort) == 0 {
-		webApiPort = "9002"
+	if len(rpcPort)==0 {
+		rpcPort = "9002"
+	}
+	if len(webApiPort)==0 {
+		webApiPort = "9003"
 	}
 	if len(dbRootPath) == 0 {
 		dbRootPath = dir + "/debrain-data/"
 	}
 	dbRootPath = filepath.FromSlash(dbRootPath)
 	sysDB := TSys{
-		SyncPort:          syncPort,
+		SyncPortTCP:       syncPortTCP,
+		SyncPortUDP:       syncPortUDP,
 		RpcPort:           rpcPort,
 		WebApiPort:        webApiPort,
 		HeartbeatInterval: 1,

@@ -146,8 +146,8 @@ func WFGToRT(
 	// route table
 	rt := node.TRTNew()
 	// file block sync
-	for _, n := range rt.NodeList {
-		c, er := net.Dial("tcp", n.Addr+":"+n.Port)
+	for _, n := range rt.NodeListTCP {
+		c, er := net.Dial("tcp", n.Addr+":"+string(n.Port))
 		if er != nil {
 			badNodeList = append(badNodeList, node.TNodeInfo{n.Addr, n.Port})
 			// bad node
