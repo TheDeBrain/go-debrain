@@ -367,6 +367,18 @@ func FBReader(r io.Reader) (*FileBlock, error) {
 	return fb, errors.New("illegal agreement")
 }
 
+// read in more file block
+func FBReaderMore(r io.Reader) ([]*FileBlock, error) {
+	var fBs []*FileBlock
+	for {
+		fb, err := FBReader(r)
+		if err != nil || err == io.EOF {
+			return fBs, err
+		}
+		fBs = append(fBs, fb)
+	}
+}
+
 // file block protocol writer
 func FBWriter(w io.Writer, fb *FileBlock) error {
 	fbArr, err := FBBuf(fb)

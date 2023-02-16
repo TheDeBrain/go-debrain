@@ -133,19 +133,25 @@ func RCDecoding(rcArr []byte) (*ResultCollect, error) {
 
 // -------------------------- result handle start --------------------------
 
-func RESNew(addr string, port string, flag string, des string, fb *FileBlock) (*Result, error) {
-	fbuf, _ := FBBuf(fb)
+func RESNew(addr string, port string, flag string, des string, fbSlice []*FileBlock) (*Result, error) {
+	var allFbSlice []byte
+	if fbSlice != nil {
+		for _, fb := range fbSlice {
+			fbuf, _ := FBBuf(fb)
+			allFbSlice = append(allFbSlice, fbuf.Bytes()...)
+		}
+	}
 	res := Result{
 		uint16(len([]byte(addr))),
 		uint16(len([]byte(port))),
 		uint32(len([]byte(flag))),
 		uint64(len([]byte(des))),
-		uint64(len(fbuf.Bytes())),
+		uint64(len(allFbSlice)),
 		[]byte(addr),
 		[]byte(port),
 		[]byte(flag),
 		[]byte(des),
-		fbuf.Bytes(),
+		allFbSlice,
 		[]byte(rules.FILE_BLCOK_END_FLAG),
 	}
 	return &res, nil

@@ -64,6 +64,7 @@ func handleGetFileResponse(conn net.Conn) error {
 	}
 	// the one file
 	if len(m) > 0 {
+		var fBs []*protocols.FileBlock
 		for _, f := range m {
 			val := f
 			fB, err := protocols.RFBByPath(val)
@@ -77,10 +78,11 @@ func handleGetFileResponse(conn net.Conn) error {
 			//for _, node := range *nodeList {
 			//	fmt.Println("node list--", node)
 			//}
-			res, _ := protocols.RESNew(conn.LocalAddr().String(), sys.TSysNew().SyncPort,
-				rules.NET_PACK_OK_FLAG, "ok", fB)
-			protocols.RESWriter(conn, res)
+			fBs = append(fBs, fB)
 		}
+		res, _ := protocols.RESNew(conn.LocalAddr().String(), sys.TSysNew().SyncPort,
+			rules.NET_PACK_OK_FLAG, "ok", fBs)
+		protocols.RESWriter(conn, res)
 	} else {
 		// addr string, port string, flag string, des string
 		res, _ := protocols.RESNew(conn.LocalAddr().String(), sys.TSysNew().SyncPort,
@@ -161,7 +163,7 @@ func handleUploadSyncReq(conn net.Conn) error {
 	protocols.FBSaveToLocal(fb)
 	// result
 	res, _ := protocols.RESNew(conn.LocalAddr().String(), sys.TSysNew().SyncPort,
-		rules.NET_PACK_OK_FLAG, "ok", fb)
+		rules.NET_PACK_OK_FLAG, "ok", []*protocols.FileBlock{fb})
 	protocols.RESWriter(conn, res)
 	return nil
 }
