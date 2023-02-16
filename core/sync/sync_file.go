@@ -159,5 +159,9 @@ func handleUploadSyncReq(conn net.Conn) error {
 	}
 	// save local
 	protocols.FBSaveToLocal(fb)
+	// result
+	res, _ := protocols.RESNew(conn.LocalAddr().String(), sys.TSysNew().SyncPort,
+		rules.NET_PACK_OK_FLAG, "ok", fb)
+	protocols.RESWriter(conn, res)
 	return nil
 }

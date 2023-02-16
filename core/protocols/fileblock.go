@@ -387,7 +387,7 @@ func FBEnCoding(fb *FileBlock) ([]byte, error) {
 }
 
 // file block decode
-func FBDnCoding(f []byte) (*FileBlock, error) {
+func FBDeCoding(f []byte) (*FileBlock, error) {
 	fb := new(FileBlock)
 	err := json.Unmarshal(f, fb)
 	if err != nil {
@@ -415,7 +415,7 @@ func FBSyncFull(fb *FileBlock, netActionType uint8) {
 		storageNode = append(storageNode, ni)
 	}
 	// encode node list
-	fb.Body.FileBlockStorageNode, _ = json.Marshal(storageNode)
+	fb.Body.FileBlockStorageNode, _ = json.MarshalIndent(storageNode, "", " ")
 	fb.Head.FileBlockStorageNodeSize = uint64(len(fb.Body.FileBlockStorageNode))
 	fbb, err := FBBuf(fb)
 	if err != nil {
@@ -462,7 +462,7 @@ func RFBByPath(filePath string) (*FileBlock, error) {
 		return nil, err
 	}
 	fb := new(FileBlock)
-	fb, err = FBDnCoding(f)
+	fb, err = FBDeCoding(f)
 	if err != nil {
 		return nil, err
 	}

@@ -60,9 +60,10 @@ func (np *NetPack) NPSendFull(nodeList []node.TNodeInfo) (*ResultCollect, error)
 		if err != nil {
 			// bad node hanlde
 		}
-		// result
+		// read in result
 		res, err := RESReader(c)
 		resArr = append(resArr, *res)
+		c.Close()
 	}
 	rc, _ := RCNew(resArr)
 	return rc, nil

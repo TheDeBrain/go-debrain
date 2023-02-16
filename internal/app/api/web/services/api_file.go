@@ -39,7 +39,7 @@ func GetFile(c *gin.Context) error {
 	bb := bytes.NewBuffer(a[0].FileBlock)
 	fb, _ := protocols.FBNewByBuf(bb)
 	c.JSON(http.StatusOK, gin.H{
-		"file_blcok":fb,
+		"file_blcok": fb,
 	})
 	return nil
 }
@@ -62,8 +62,8 @@ func UploadFileForOne(c *gin.Context) error {
 	fileOwner := c.Request.PostFormValue("fileOwner")
 	// file buf
 	fbuf := make([]byte, headers.Size)
-	f.Read(fbuf)
-	err = sync.HandleSendUploadSyncReq(fbuf, fileName, fileOwner)
+	n, err := f.Read(fbuf)
+	err = sync.HandleSendUploadSyncReq(fbuf[:n], fileName, fileOwner)
 	if err != nil {
 		return err
 	}
