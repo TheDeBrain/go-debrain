@@ -36,10 +36,13 @@ func GetFile(c *gin.Context) error {
 
 	a, _ := protocols.RESDecoding(rc.ResultList)
 
-	bb := bytes.NewBuffer(a[0].FileBlock)
-	fb, _ := protocols.FBNewByBuf(bb)
+
+	fbs,err:=protocols.FBReaderMore(bytes.NewReader(a[0].FileBlock))
+
+	//bb := bytes.NewBuffer(a[0].FileBlock)
+	//fb, _ := protocols.FBNewByBuf(bb)
 	c.JSON(http.StatusOK, gin.H{
-		"file_blcok": fb,
+		"file_blcok": fbs,
 	})
 	return nil
 }
